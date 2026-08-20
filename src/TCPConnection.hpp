@@ -38,10 +38,7 @@ public:
      * @throws std::runtime_error Address resolution failed.
      * @throws std::system_error An OS-level networking call failed.
      */
-    TCPConnection(
-            std::string_view host,
-            std::uint16_t port
-    );
+    TCPConnection(std::string_view host, std::uint16_t port);
 
     /**
      * Waits for and accepts one incoming TCP connection.
@@ -69,7 +66,6 @@ public:
     [[nodiscard]] std::span<const std::byte> read(std::span<std::byte> storage) const;
 
 private:
-
     /**
      * Creates and connects a TCP socket.
      *
@@ -81,10 +77,7 @@ private:
      *
      * @return File descriptor of the connected socket.
      */
-    static int get_connection_fd(
-            std::string_view host,
-            std::uint16_t port
-    );
+    static int get_connection_fd(std::string_view host, std::uint16_t port);
 
     /**
      * Accepts one connection on an ephemeral listening socket.

@@ -21,20 +21,12 @@
 namespace firestorm
 {
 
-TCPConnection::TCPConnection(
-        const std::string_view host,
-        const std::uint16_t port
-) :
-    fd(get_connection_fd(
-            host,
-            port
-    ))
+TCPConnection::TCPConnection(const std::string_view host, const std::uint16_t port) :
+    fd(get_connection_fd(host, port))
 {
 }
 
-TCPConnection::TCPConnection(
-        const std::uint16_t port
-) :
+TCPConnection::TCPConnection(const std::uint16_t port) :
     fd(get_accept_fd(port))
 {
 }
@@ -45,19 +37,12 @@ TCPConnection::~TCPConnection() noexcept
         close(fd);
 }
 
-TCPConnection::TCPConnection(
-        TCPConnection&& other
-) noexcept :
-    fd(std::exchange(
-            other.fd,
-            -1
-    ))
+TCPConnection::TCPConnection(TCPConnection&& other) noexcept :
+    fd(std::exchange(other.fd, -1))
 {
 }
 
-TCPConnection& TCPConnection::operator=(
-        TCPConnection&& other
-) noexcept
+TCPConnection& TCPConnection::operator=(TCPConnection&& other) noexcept
 {
     if (this != &other) {
         if (fd != -1)
@@ -69,9 +54,7 @@ TCPConnection& TCPConnection::operator=(
     return *this;
 }
 
-std::span<const std::byte> TCPConnection::read(
-        const std::span<std::byte> storage
-) const
+std::span<const std::byte> TCPConnection::read(const std::span<std::byte> storage) const
 {
     if (storage.empty())
         throw std::invalid_argument("TCP receive buffer is empty.");
@@ -88,10 +71,7 @@ std::span<const std::byte> TCPConnection::read(
     return storage.first(static_cast<std::size_t>(received_count));
 }
 
-int TCPConnection::get_connection_fd(
-        const std::string_view host,
-        const std::uint16_t port
-)
+int TCPConnection::get_connection_fd(const std::string_view host, const std::uint16_t port)
 {
     constexpr addrinfo hints{.ai_family = AF_UNSPEC, .ai_socktype = SOCK_STREAM};
 
@@ -121,9 +101,7 @@ int TCPConnection::get_connection_fd(
     throw std::system_error(errno, std::generic_category(), "connect");
 }
 
-int TCPConnection::get_accept_fd(
-        const std::uint16_t port
-)
+int TCPConnection::get_accept_fd(const std::uint16_t port)
 {
     const auto listener = socket(AF_INET, SOCK_STREAM, 0);
     if (listener == -1)
