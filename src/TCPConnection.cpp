@@ -69,6 +69,25 @@ TCPConnection& TCPConnection::operator=(
     return *this;
 }
 
+std::span<const std::byte> TCPConnection::read(
+        const std::span<std::byte> storage
+) const
+{
+    if (storage.empty())
+        throw std::invalid_argument("TCP receive buffer is empty.");
+
+    ssize_t received_count;
+
+    do {
+        received_count = recv(fd, storage.data(), storage.size(), 0);
+    } while (received_count == -1 && errno == EINTR);
+
+    if (received_count == -1)
+        throw std::system_error(errno, std::generic_category(), "recv");
+
+    return storage.first(static_cast<std::size_t>(received_count));
+}
+
 int TCPConnection::get_connection_fd(
         const std::string_view host,
         const std::uint16_t port

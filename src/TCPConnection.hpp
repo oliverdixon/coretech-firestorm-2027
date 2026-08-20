@@ -11,6 +11,7 @@
 #define FIRESTORM_TCPCONNECTION_HPP
 
 #include <cstdint>
+#include <span>
 #include <string_view>
 
 namespace firestorm
@@ -64,6 +65,8 @@ public:
 
     TCPConnection(TCPConnection&& other) noexcept;
     TCPConnection& operator=(TCPConnection&& other) noexcept;
+
+    [[nodiscard]] std::span<const std::byte> read(std::span<std::byte> storage) const;
 
 private:
 
