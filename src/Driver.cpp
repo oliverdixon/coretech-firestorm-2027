@@ -15,24 +15,23 @@
 #include <ranges>
 
 #include "CTFSPacket.hpp"
-#include "PacketFilter.hpp"
+#include "TrafficDecoder.hpp"
 
 namespace firestorm
 {
 
 void Driver::run()
 {
+    static constexpr std::uint16_t incoming_port = 5733;
+
     std::array<std::byte, 64 * 1024> storage{};
-    PacketFilter filter;
+    TrafficDecoder filter;
 
-    const auto forward_callback = std::bind_front(&Driver::forward_bytes, this);
-    const auto capture_callback = std::bind_front(&Driver::capture_packet, this);
+    TCPConnection source{incoming_port};
+    const auto callback = std::bind_front(&Driver::process_record_view, this);
 
-    const TCPConnection incoming{incoming_port};
-
-    for (std::span<const std::byte> bytes = incoming.read(storage); !bytes.empty(); bytes = incoming.read(storage))
-        filter.consume(bytes, forward_callback, capture_callback);
-    filter.finish(forward_callback);
+    for (std::span<const std::byte> bytes = source.read(storage); !bytes.empty(); bytes = source.read(storage))
+        filter.consume(bytes, callback);
 
     for (const auto& [file_id, packets] : packet_groups) {
         std::ofstream output_file(std::filesystem::current_path() /
@@ -45,18 +44,25 @@ void Driver::run()
     packet_groups.clear();
 }
 
-void Driver::forward_bytes(const std::span<const std::byte> bytes)
+void Driver::process_record_view(const TrafficRecordView& record_view)
 {
-    if (!outgoing.has_value())
-        outgoing.emplace(endpoint_addr, outgoing_port);
-
-    outgoing->write_all(bytes);
+    std::visit(
+        [this](const auto& decoded) {
+            process_record(decoded);
+        },
+        record_view);
 }
 
-void Driver::capture_packet(CTFSPacket&& packet)
+void Driver::process_record(const CTFSPacketView& ctfs_packet_view)
 {
-    if (!packet_groups[packet.get_file_id()].emplace(std::move(packet)).second)
-        throw std::invalid_argument("Duplicate CTFS packet sequence number.");
+    if (ctfs_packet_view.has_valid_checksum())
+        if (!packet_groups[ctfs_packet_view.file_id].emplace(ctfs_packet_view.make_packet()).second)
+            throw std::invalid_argument("Duplicate CTFS packet sequence number.");
+}
+
+void Driver::process_record(const EthernetFrameView& ethernet_frame_view)
+{
+    frame_router.route(ethernet_frame_view);
 }
 
 void Driver::write_pdf(std::ofstream& output, const std::set<CTFSPacket>& packets)

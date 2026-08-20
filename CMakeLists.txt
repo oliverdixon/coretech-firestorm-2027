@@ -9,8 +9,15 @@ add_executable(FireStorm
         src/TCPConnection.hpp
         src/CTFSPacket.cpp
         src/CTFSPacket.hpp
-        src/PacketFilter.cpp
-        src/PacketFilter.hpp
+        src/TrafficDecoder.cpp
+        src/TrafficDecoder.hpp
         src/Driver.cpp
         src/Driver.hpp
+        src/LazyFrameSink.cpp
+        src/LazyFrameSink.hpp
+        src/EthernetFrameView.hpp
+        src/FrameRouter.cpp
+        src/FrameRouter.hpp
+        src/CTFSRecordView.hpp
+        src/CTFSRecordView.cpp
 )
