@@ -10,7 +10,6 @@
 #ifndef FIRESTORM_CTFSPACKET_HPP
 #define FIRESTORM_CTFSPACKET_HPP
 
-#include <compare>
 #include <cstdint>
 #include <span>
 #include <vector>
@@ -19,24 +18,70 @@ namespace firestorm
 {
 
 /**
- * @todo Document
+ * A decoded CTFS packet.
+ *
+ * A CTFSPacket contains the the packet's sequence number and an owned copy of its payload. The CTFS magic bytes and
+ * the remainder of the transmission header are not included in the stored payload.
+ *
+ * Packets are ordered and compared for equality solely by sequence number.
  */
-struct CTFSPacket
+class CTFSPacket
 {
-    CTFSPacket(const std::uint16_t sequence_number, const std::span<const std::byte> payload) :
-        sequence_number(sequence_number)
-    {
-        this->payload.assign_range(payload);
-    }
+public:
+    /**
+     * Constructs a packet from its decoded fields.
+     *
+     * Copies the contents of @p payload into storage owned by the packet. The supplied span therefore does not need to
+     * remain valid after the constructor returns.
+     *
+     * @param sequence_number Packet sequence number, in host byte order.
+     * @param payload Packet payload, excluding the CTFS header.
+     *
+     * @throws std::bad_alloc Storage for the payload cannot be allocated.
+     */
+    CTFSPacket(std::uint16_t sequence_number, std::span<const std::byte> payload);
 
+    /**
+     * Compares two packets by sequence number.
+     *
+     * @param lhs The left-hand packet.
+     * @param rhs The right-hand packet.
+     *
+     * @return Strong ordering of @p lhs relative to @p rhs.
+     */
     friend std::strong_ordering operator<=>(const CTFSPacket& lhs, const CTFSPacket& rhs) noexcept;
+
+
+    /**
+     * Determines equality between two packets by their sequence numbers.
+     *
+     * @param lhs The left-hand packet.
+     * @param rhs The right-hand packet.
+     *
+     * @return Do both packets have the same sequence number?
+     */
     friend bool operator==(const CTFSPacket& lhs, const CTFSPacket& rhs) noexcept;
 
-    CTFSPacket(CTFSPacket&) = delete;
-    CTFSPacket& operator=(CTFSPacket&) = delete;
+    CTFSPacket(const CTFSPacket&) = delete;
+    CTFSPacket& operator=(const CTFSPacket&) = delete;
 
-    CTFSPacket(CTFSPacket&&) = default;
+    CTFSPacket(CTFSPacket&&) noexcept = default;
+    CTFSPacket& operator=(CTFSPacket&& other) noexcept;
 
+    /**
+     * Retrieves the packet sequence number.
+     * @return Sequence number in host byte ordering.
+     */
+    [[nodiscard]] std::uint16_t get_sequence_number() const noexcept;
+
+
+    /**
+     * Retrieves an observing span of the packet payload.
+     * @return A non-owning view of the packet payload.
+     */
+    [[nodiscard]] std::span<const std::byte> observe_payload() const noexcept;
+
+private:
     std::uint16_t sequence_number;
     std::vector<std::byte> payload;
 };

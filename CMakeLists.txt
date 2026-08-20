@@ -12,4 +12,6 @@ add_executable(FireStorm
         src/CTFSPacket.hpp
         src/PacketFilter.cpp
         src/PacketFilter.hpp
+        src/Driver.cpp
+        src/Driver.hpp
 )

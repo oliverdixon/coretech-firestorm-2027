@@ -10,10 +10,7 @@
 #ifndef FIRESTORM_PACKETFILTER_HPP
 #define FIRESTORM_PACKETFILTER_HPP
 
-#include <array>
-#include <set>
-#include <span>
-#include <vector>
+#include <algorithm>
 
 #include "CTFSPacket.hpp"
 
@@ -21,16 +18,72 @@ namespace firestorm
 {
 
 /**
- * @todo Document
+ * Concept for callbacks that consume ordinary non-operational network data.
+ *
+ * A forwarding callback receives a temporary read-only view of bytes that have been determined not to belong to a CTFS
+ * frame.
+ *
+ * @tparam F Callable type accepting `std::span<const std::byte>`.
+ */
+template <typename F>
+concept ForwardCallback = std::invocable<F&, std::span<const std::byte>>;
+
+/**
+ * Concept for callbacks that consume decoded CTFS packets.
+ *
+ * @tparam C Callable type accepting a CTFSPacket rvalue.
+ */
+template <typename C>
+concept CaptureCallback = std::invocable<C&, CTFSPacket>;
+
+/**
+ * Separates CTFS frames from an arbitrary stream of bytes.
+ *
+ * PacketFilter incrementally processes byte chunks that need not correspond to TCP packets, writes, or CTFS frame
+ * boundaries. Ordinary bytes are reported through a ForwardCallback, while complete CTFS frames are decoded and
+ * reported through a CaptureCallback.
+ *
+ * The filter retains incomplete markers, headers, and payloads between calls @ref consume. After the input stream
+ * stream closes, @ref finish must be called to flush any remaining ordinary bytes and detect a truncated CTFS frame.
+ *
+ * A CTFS frame is interpreted as:
+ *
+ * Offset | Size | Description
+ * ------ | ---- | -----------
+ * 0      | 4    | "CTFS" magic bytes
+ * 4      | 2    | Sequence marker, in network byte order
+ * 6      | 2    | Payload length, in network byte order
+ * 8      | 8    | Reserved
+ * 16     | ...  | Payload
+ *
+ * @note The PacketFilter is independent of the source and destination transports.
+ *
+ * @note Spans passed to the ForwardCallback refer to internal storage and remain valid only for the duration of the
+ * callback invocation.
+ *
+ * @warning The PacketFilter is neither thread-safe nor reentrant. A callback must not call @ref consume or @ref finish
+ * on the same filter.
  */
 class PacketFilter
 {
 public:
-    template <typename Forward, typename Capture>
-        requires std::invocable<Forward&, std::span<const std::byte>> && std::invocable<Capture&, CTFSPacket>
-    void consume(std::span<const std::byte> input, Forward&& forward_callback, Capture&& capture_callback);
+    /**
+     * Processes a chunk of input bytes.
+     *
+     * @param input Chunk of bytes from the input stream.
+     * @param forward_callback Callback invoked synchronously for ordinary bytes.
+     * @param capture_callback Callback invoked synchronously for each complete CTFS packet.
+     */
+    void consume(std::span<const std::byte> input,
+                 ForwardCallback auto&& forward_callback,
+                 CaptureCallback auto&& capture_callback);
+
+    void finish(ForwardCallback auto&& forward_callback);
 
 private:
+    /**
+     * CTFS frame marker.
+     */
     static constexpr std::array magic{
         std::byte{0x43}, // 'C',
         std::byte{0x54}, // 'T',
@@ -48,21 +101,25 @@ private:
     std::size_t consumed = 0;
 };
 
-template <typename Forward, typename Capture>
-    requires std::invocable<Forward&, std::span<const std::byte>> && std::invocable<Capture&, CTFSPacket>
-void PacketFilter::consume(std::span<const std::byte> input, Forward&& forward_callback, Capture&& capture_callback)
+void PacketFilter::consume(const std::span<const std::byte> input,
+                           ForwardCallback auto&& forward_callback,
+                           CaptureCallback auto&& capture_callback)
 {
     std::ranges::copy(input, std::back_inserter(buffer));
 
-    // TODO logic needs tidying.
-
-    for (;;) {
+    while (consumed < buffer.size()) {
+        // Get the subspan spanning from the beginning of the unconsumed bytes in the buffer to the end.
         const auto available = std::span<const std::byte>(buffer).subspan(consumed);
         const auto match = std::ranges::search(available, magic);
 
         if (match.begin() == available.end()) {
-            constexpr std::size_t retained = magic.size() - 1;
-            const std::size_t forward_size = available.size() > retained ? available.size() - retained : 0;
+            /*
+             * The magic bytes are not present in the input. We retain the bytes in case the header spans a packet
+             * boundary. Otherwise, forward it to the forwarding callback.
+             */
+
+            constexpr auto retained = magic.size() - 1;
+            const auto forward_size = available.size() > retained ? available.size() - retained : 0;
 
             if (forward_size != 0) {
                 forward_callback(available.first(forward_size));
@@ -73,31 +130,41 @@ void PacketFilter::consume(std::span<const std::byte> input, Forward&& forward_c
             return;
         }
 
-        const std::size_t prefix_size = std::ranges::distance(available.begin(), match.begin());
-        if (prefix_size != 0) {
+        const auto prefix_size = std::ranges::distance(available.begin(), match.begin());
+
+        if (prefix_size > 0) {
+            // Forward the bytes prior to the beginning of the header.
             forward_callback(available.first(prefix_size));
             consumed += prefix_size;
-            continue;
+        } else {
+            if (available.size() < header_size) {
+                compact();
+                return;
+            }
+
+            // Otherwise, decode the header and payload and construct a packet. Send the packet to the capture callback.
+
+            const auto sequence_number = read_u16_be(available, 4);
+            const auto payload_size = read_u16_be(available, 6);
+            const auto frame_size = header_size + payload_size;
+
+            if (available.size() < frame_size) {
+                compact();
+                return;
+            }
+
+            const auto payload = available.subspan(header_size, payload_size);
+            capture_callback(CTFSPacket(sequence_number, payload));
+            consumed += frame_size;
         }
-
-        if (available.size() < header_size) {
-            compact();
-            return;
-        }
-
-        const auto sequence_number = read_u16_be(available, 4);
-        const auto payload_size = read_u16_be(available, 6);
-        const auto frame_size = header_size + payload_size;
-
-        if (available.size() < frame_size) {
-            compact();
-            return;
-        }
-
-        const auto payload = available.subspan(header_size, payload_size);
-        capture_callback(CTFSPacket(sequence_number, payload));
-        consumed += frame_size;
     }
+}
+
+void PacketFilter::finish(ForwardCallback auto&& forward_callback)
+{
+    const auto remaining = std::span<const std::byte>{buffer}.subspan(consumed);
+
+    // TODO
 }
 
 } // namespace firestorm

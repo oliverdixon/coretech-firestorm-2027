@@ -63,6 +63,17 @@ public:
     TCPConnection(TCPConnection&& other) noexcept;
     TCPConnection& operator=(TCPConnection&& other) noexcept;
 
+    /**
+     * Reads available bytes over the TCP socket into the given storage buffer.
+     *
+     * The maximum number of bytes read is given by the size of @p storage.
+     *
+     * @param storage Allocated destination buffer for received bytes.
+     * @return A non-owning observing view of the output buffer.
+     *
+     * @throws std::invalid_argument @p storage had no capacity.
+     * @throws std::system_error The OS-level network receive call failed.
+     */
     [[nodiscard]] std::span<const std::byte> read(std::span<std::byte> storage) const;
 
 private:
