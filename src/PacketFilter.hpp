@@ -118,7 +118,18 @@ private:
      *
      * @return Decoded value.
      */
-    static std::uint16_t read_u16_be(std::span<const std::byte, 2> bytes) noexcept;
+    static std::uint16_t decode_big_endian(std::span<const std::byte, 2> bytes) noexcept;
+
+    /**
+     * Decodes an unsigned 32-bit big-endian value.
+     *
+     * @param bytes Bytes containing the encoded value.
+     *
+     * @return Decoded value.
+     */
+    static std::uint32_t decode_big_endian(std::span<const std::byte, 4> bytes) noexcept;
+
+    [[nodiscard]] std::optional<CTFSPacket> parse_packet(std::span<const std::byte> data);
 
     /**
      * Removes processed bytes from the front of the buffer.
@@ -165,29 +176,22 @@ void PacketFilter::consume(const std::span<const std::byte> input,
         const auto prefix_size = std::ranges::distance(available.begin(), match.begin());
 
         if (prefix_size > 0) {
-            // Forward the bytes prior to the beginning of the header.
+            // Forward the bytes prior to the beginning of the header and advance the read head.
             forward_callback(available.first(prefix_size));
             consumed += prefix_size;
+        } else if (available.size() < header_size) {
+            compact();
+            return;
         } else {
-            if (available.size() < header_size) {
+            auto packet = parse_packet(available);
+            if (packet.has_value()) {
+                // Otherwise, decode the header and payload and construct a packet. Send the packet to the capture callback.
+                auto&& stolen_packet = std::move(packet).value();
+                capture_callback(std::move(stolen_packet));
+            } else {
                 compact();
                 return;
             }
-
-            // Otherwise, decode the header and payload and construct a packet. Send the packet to the capture callback.
-
-            const auto sequence_number = read_u16_be(available.subspan<4, 2>());
-            const auto payload_size = read_u16_be(available.subspan<6, 2>());
-            const auto frame_size = header_size + payload_size;
-
-            if (available.size() < frame_size) {
-                compact();
-                return;
-            }
-
-            const auto payload = available.subspan(header_size, payload_size);
-            capture_callback(CTFSPacket(sequence_number, payload));
-            consumed += frame_size;
         }
     }
 

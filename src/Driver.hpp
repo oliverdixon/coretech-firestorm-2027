@@ -11,6 +11,7 @@
 #define FIRESTORM_DRIVER_HPP
 
 #include <filesystem>
+#include <map>
 #include <optional>
 #include <set>
 
@@ -36,14 +37,13 @@ public:
      * Reads until an orderly end-of-stream, forwards ordinary bytes, captures CTFS packets, and writes their payloads
      * in ascending sequence-number order to @p pdf_destination.
      *
-     * @param pdf_destination Destination path for the reconstructed PDF.
-     *
      * @throws std::system_error A low-level socket operation failed.
      * @throws std::runtime_error The stream ends during a CTFS frame.
      * @throws std::runtime_error Duplicate sequence numbers are encountered.
      * @throws std::runtime_error PDF output cannot be completed.
+     * @throws std::ios_base::failure A destination file could not be opened.
      */
-    void run(const std::filesystem::path& pdf_destination);
+    void run();
 
 private:
     static constexpr std::uint16_t incoming_port = 5733; /**< TCP port on which to receive data. */
@@ -72,19 +72,17 @@ private:
     void capture_packet(CTFSPacket&& packet);
 
     /**
-     * Writes captured payloads in ascending sequence-number order.
+     * Writes captured payloads in ascending sequence-number order for a single file.
      *
-     * Existing contents of @p pdf_destination are replaced.
+     * @param output Output file destination.
+     * @param packets Ordered set of packets required to construct a PDF file at @p output.
      *
-     * @param pdf_destination Destination path for the reconstructed PDF.
-     *
-     * @throws std::ios_base::failure The destination could not be opened.
-     * @throws std::ios_base::failure The entire PDF could not be reconstructed.
+     * @throws std::ios_base::failure The entire PDF could not be reconstructed from @p packets.
      */
-    void write_pdf(const std::filesystem::path& pdf_destination) const;
+    static void write_pdf(std::ofstream& output, const std::set<CTFSPacket>& packets);
 
-    std::optional<TCPConnection> outgoing;
-    std::set<CTFSPacket> packets;
+    std::optional<TCPConnection> outgoing; /**< Lazily established connection to peer endpoint to receive data. */
+    std::map<std::uint8_t, std::set<CTFSPacket>> packet_groups; /**< Ordered sets of packets, grouped by file ID. */
 };
 
 } // namespace firestorm

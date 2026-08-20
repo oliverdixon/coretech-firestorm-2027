@@ -12,6 +12,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <ranges>
 
 #include "CTFSPacket.hpp"
 #include "PacketFilter.hpp"
@@ -19,7 +20,7 @@
 namespace firestorm
 {
 
-void Driver::run(const std::filesystem::path& pdf_destination)
+void Driver::run()
 {
     std::array<std::byte, 64 * 1024> storage{};
     PacketFilter filter;
@@ -33,8 +34,15 @@ void Driver::run(const std::filesystem::path& pdf_destination)
         filter.consume(bytes, forward_callback, capture_callback);
     filter.finish(forward_callback);
 
-    write_pdf(pdf_destination);
-    packets.clear();
+    for (const auto& [file_id, packets] : packet_groups) {
+        std::ofstream output_file(std::filesystem::current_path() /
+                                      std::format("{}.pdf", static_cast<unsigned int>(file_id)),
+                                  std::ios::binary | std::ios::out);
+        output_file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+        write_pdf(output_file, packets);
+    }
+
+    packet_groups.clear();
 }
 
 void Driver::forward_bytes(const std::span<const std::byte> bytes)
@@ -47,18 +55,15 @@ void Driver::forward_bytes(const std::span<const std::byte> bytes)
 
 void Driver::capture_packet(CTFSPacket&& packet)
 {
-    if (!packets.insert(std::move(packet)).second)
+    if (!packet_groups[packet.get_file_id()].emplace(std::move(packet)).second)
         throw std::invalid_argument("Duplicate CTFS packet sequence number.");
 }
 
-void Driver::write_pdf(const std::filesystem::path& pdf_destination) const
+void Driver::write_pdf(std::ofstream& output, const std::set<CTFSPacket>& packets)
 {
-    std::ofstream file(pdf_destination, std::ios::binary | std::ios::out);
-    file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-
     for (const auto& packet : packets) {
         const auto payload = packet.observe_payload();
-        file.write(reinterpret_cast<const char*>(payload.data()), static_cast<std::streamsize>(payload.size()));
+        output.write(reinterpret_cast<const char*>(payload.data()), static_cast<std::streamsize>(payload.size()));
     }
 }
 
@@ -77,7 +82,7 @@ int main()
 
     try {
         Driver driver;
-        driver.run({"./file.pdf"});
+        driver.run();
         return 0;
     } catch (const std::exception& error) {
         std::println(std::cerr, "FIRE STORM failed: {}", error.what());

@@ -20,10 +20,10 @@ namespace firestorm
 /**
  * A decoded CTFS packet.
  *
- * A CTFSPacket contains the packet's sequence number and an owned copy of its payload. The CTFS magic bytes and the
- * remainder of the transmission header are not included in the stored payload.
+ * A CTFSPacket contains the packet's sequence number, the ID of the file to which it belongs, and an owned copy of its
+ * payload. The CTFS magic bytes and the remainder of the transmission header are not included in the stored payload.
  *
- * Packets are ordered and compared for equality solely by sequence number.
+ * Packets are ordered and compared for equality solely by sequence number and file ID.
  */
 class CTFSPacket
 {
@@ -35,11 +35,12 @@ public:
      * remain valid after the constructor returns.
      *
      * @param sequence_number Packet sequence number, in host byte order.
+     * @param file_id ID of the PDF to which the packet should be used to reconstruct.
      * @param payload Packet payload, excluding the CTFS header.
      *
      * @throws std::bad_alloc Storage for the payload cannot be allocated.
      */
-    CTFSPacket(std::uint16_t sequence_number, std::span<const std::byte> payload);
+    CTFSPacket(std::uint16_t sequence_number, std::uint8_t file_id, std::span<const std::byte> payload);
 
     /**
      * Compares two packets by sequence number.
@@ -69,10 +70,15 @@ public:
 
     /**
      * Retrieves the packet sequence number.
-     * @return Sequence number in host byte ordering.
+     * @return Sequence number.
      */
     [[nodiscard]] std::uint16_t get_sequence_number() const noexcept;
 
+    /**
+     * Retrieves the file ID to which the packet belongs.
+     * @return File ID number.
+     */
+    [[nodiscard]] std::uint8_t get_file_id() const noexcept;
 
     /**
      * Retrieves an observing span of the packet payload.
@@ -82,6 +88,7 @@ public:
 
 private:
     std::uint16_t sequence_number;
+    std::uint8_t file_id;
     std::vector<std::byte> payload;
 };
 
