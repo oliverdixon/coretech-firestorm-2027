@@ -12,9 +12,9 @@
 namespace firestorm
 {
 
-std::uint16_t PacketFilter::read_u16_be(const std::span<const std::byte> bytes, const std::size_t offset) noexcept
+std::uint16_t PacketFilter::read_u16_be(const std::span<const std::byte, 2> bytes) noexcept
 {
-    return std::to_integer<std::uint16_t>(bytes[offset]) << 8 | std::to_integer<std::uint16_t>(bytes[offset + 1]);
+    return std::to_integer<std::uint16_t>(bytes[0]) << 8 | std::to_integer<std::uint16_t>(bytes[1]);
 }
 
 void PacketFilter::compact()

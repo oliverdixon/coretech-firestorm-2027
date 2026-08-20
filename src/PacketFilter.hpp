@@ -11,6 +11,7 @@
 #define FIRESTORM_PACKETFILTER_HPP
 
 #include <algorithm>
+#include <stdexcept>
 
 #include "CTFSPacket.hpp"
 
@@ -78,6 +79,18 @@ public:
                  ForwardCallback auto&& forward_callback,
                  CaptureCallback auto&& capture_callback);
 
+    /**
+     * Finishes processing after the input stream closes.
+     *
+     * Any retained bytes that cannot form a complete CTFS frame are forwarded as ordinary data through
+     * @p forward_callback.
+     *
+     * @param forward_callback Callback invoked synchronously for remaining ordinary bytes.
+     *
+     * @throws std::runtime_error The stream ends during a CTFS frame.
+     *
+     * @post On success, the filter contains no buffered input and may be reused for another stream.
+     */
     void finish(ForwardCallback auto&& forward_callback);
 
 private:
@@ -91,10 +104,25 @@ private:
         std::byte{0x53}, // 'S'
     };
 
+    /**
+     * Number of bytes preceding the CTFS payload.
+     */
     static constexpr std::size_t header_size = 16;
 
-    static std::uint16_t read_u16_be(std::span<const std::byte> bytes, std::size_t offset) noexcept;
+    /**
+     * Decodes an unsigned 16-bit big-endian value.
+     *
+     * @param bytes Bytes containing the encoded value.
+     *
+     * @return Decoded value.
+     */
+    static std::uint16_t read_u16_be(std::span<const std::byte, 2> bytes) noexcept;
 
+    /**
+     * Removes processed bytes from the front of the buffer.
+     *
+     * @post `consumed == 0`
+     */
     void compact();
 
     std::vector<std::byte> buffer;
@@ -114,12 +142,16 @@ void PacketFilter::consume(const std::span<const std::byte> input,
 
         if (match.begin() == available.end()) {
             /*
-             * The magic bytes are not present in the input. We retain the bytes in case the header spans a packet
-             * boundary. Otherwise, forward it to the forwarding callback.
+             * No complete marker is available in the chunk.
+             *
+             * In a degenerate case, the marker may be crossing the payload boundary, such that the final three bytes
+             * could be "C", "CT", or "CTF", followed by the remainder in the next chunk.
+             *
+             *
              */
 
-            constexpr auto retained = magic.size() - 1;
-            const auto forward_size = available.size() > retained ? available.size() - retained : 0;
+            const auto retain_count = std::min(available.size(), magic.size() - 1);
+            const auto forward_size = available.size() - retain_count;
 
             if (forward_size != 0) {
                 forward_callback(available.first(forward_size));
@@ -144,8 +176,8 @@ void PacketFilter::consume(const std::span<const std::byte> input,
 
             // Otherwise, decode the header and payload and construct a packet. Send the packet to the capture callback.
 
-            const auto sequence_number = read_u16_be(available, 4);
-            const auto payload_size = read_u16_be(available, 6);
+            const auto sequence_number = read_u16_be(available.subspan<4, 2>());
+            const auto payload_size = read_u16_be(available.subspan<6, 2>());
             const auto frame_size = header_size + payload_size;
 
             if (available.size() < frame_size) {
@@ -158,13 +190,25 @@ void PacketFilter::consume(const std::span<const std::byte> input,
             consumed += frame_size;
         }
     }
+
+    compact();
 }
 
 void PacketFilter::finish(ForwardCallback auto&& forward_callback)
 {
     const auto remaining = std::span<const std::byte>{buffer}.subspan(consumed);
 
-    // TODO
+    const bool starts_with_magic =
+        remaining.size() >= magic.size() && std::ranges::equal(remaining.first(magic.size()), magic);
+
+    if (starts_with_magic)
+        throw std::runtime_error("Input ended during a CTFS frame.");
+
+    if (!remaining.empty())
+        forward_callback(remaining);
+
+    buffer.clear();
+    consumed = 0;
 }
 
 } // namespace firestorm

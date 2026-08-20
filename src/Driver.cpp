@@ -30,6 +30,7 @@ void Driver::run(const std::filesystem::path& pdf_destination)
 
     for (std::span<const std::byte> bytes = incoming.read(storage); !bytes.empty(); bytes = incoming.read(storage))
         filter.consume(bytes, forward_callback, capture_callback);
+    filter.finish(forward_callback);
 
     std::println(std::cout, "Captured {} packets.\nForwarded {} bytes.", packets.size(), forwarded_bytes_count);
     write_pdf(pdf_destination);
