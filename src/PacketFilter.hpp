@@ -68,6 +68,8 @@ concept CaptureCallback = std::invocable<C&, CTFSPacket>;
 class PacketFilter
 {
 public:
+    PacketFilter();
+
     /**
      * Processes a chunk of input bytes.
      *
@@ -146,8 +148,6 @@ void PacketFilter::consume(const std::span<const std::byte> input,
              *
              * In a degenerate case, the marker may be crossing the payload boundary, such that the final three bytes
              * could be "C", "CT", or "CTF", followed by the remainder in the next chunk.
-             *
-             *
              */
 
             const auto retain_count = std::min(available.size(), magic.size() - 1);

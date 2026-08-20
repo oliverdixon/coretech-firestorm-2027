@@ -71,6 +71,34 @@ std::span<const std::byte> TCPConnection::read(const std::span<std::byte> storag
     return storage.first(static_cast<std::size_t>(received_count));
 }
 
+void TCPConnection::write_all(std::span<const std::byte> data) const
+{
+    while (!data.empty()) {
+        const auto written_count = write(data);
+        if (written_count == 0)
+            throw std::system_error(std::make_error_code(std::errc::connection_reset), "send returned zero bytes");
+
+        data = data.subspan(written_count);
+    }
+}
+
+std::size_t TCPConnection::write(const std::span<const std::byte> data) const
+{
+    if (data.empty())
+        return 0;
+
+    ssize_t written_count;
+
+    do {
+        written_count = send(fd, data.data(), data.size(), MSG_NOSIGNAL);
+    } while (written_count == -1 && errno == EINTR);
+
+    if (written_count == -1)
+        throw std::system_error(errno, std::generic_category(), "send");
+
+    return written_count;
+}
+
 int TCPConnection::get_connection_fd(const std::string_view host, const std::uint16_t port)
 {
     constexpr addrinfo hints{.ai_family = AF_UNSPEC, .ai_socktype = SOCK_STREAM};

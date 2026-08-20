@@ -43,12 +43,12 @@ public:
     /**
      * Waits for and accepts one incoming TCP connection.
      *
-     * Binds a temporary listening socket to all local network interfaces on @p port. The constructor blocks until a
+     * Binds a temporary listening socket to all local IPv4 interfaces on @p port. The constructor blocks until a
      * peer connects, cleans up the listening socket, and retains ownership of the accepted connection.
      *
      * @param port Local TCP port on which to accept the connection, in host byte order.
      *
-     * @throws std::system-error An OS-level networking call failed.
+     * @throws std::system_error An OS-level networking call failed.
      */
     explicit TCPConnection(std::uint16_t port);
 
@@ -76,7 +76,33 @@ public:
      */
     [[nodiscard]] std::span<const std::byte> read(std::span<std::byte> storage) const;
 
+    /**
+     * Writes bytes to the connection.
+     *
+     * Performs successive send operations to transmit the entire @p data payload to the endpoint. An empty span results
+     * in no operation.
+     *
+     * @param data Bytes to write to the connection.
+     *
+     * @throws std::system_error A send operation failed, or could only transmit an unexpected number of bytes.
+     */
+    void write_all(std::span<const std::byte> data) const;
+
 private:
+
+    /**
+     * Writes bytes to the connection.
+     *
+     * Performs a single send operation. The number of bytes written may be smaller than @p data. If the send operation
+     * is interrupted by a signal, it is automatically retried.
+     *
+     * @param data Bytes to write to the connection.
+     * @return Number of bytes successfully written. Returns zero if @p data is empty.
+     *
+     * @throws std::system_error The send operation failed.
+     */
+    [[nodiscard]] std::size_t write(std::span<const std::byte> data) const;
+
     /**
      * Creates and connects a TCP socket.
      *
@@ -95,7 +121,7 @@ private:
      *
      * @param port Local TCP port on which to accept the connection, in host byte order.
      *
-     * @throws std::system-error An OS-level networking call failed.
+     * @throws std::system_error An OS-level networking call failed.
      *
      * @return File descriptor of the accepted connection socket.
      */

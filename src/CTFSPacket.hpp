@@ -20,8 +20,8 @@ namespace firestorm
 /**
  * A decoded CTFS packet.
  *
- * A CTFSPacket contains the the packet's sequence number and an owned copy of its payload. The CTFS magic bytes and
- * the remainder of the transmission header are not included in the stored payload.
+ * A CTFSPacket contains the packet's sequence number and an owned copy of its payload. The CTFS magic bytes and the
+ * remainder of the transmission header are not included in the stored payload.
  *
  * Packets are ordered and compared for equality solely by sequence number.
  */
@@ -50,7 +50,6 @@ public:
      * @return Strong ordering of @p lhs relative to @p rhs.
      */
     friend std::strong_ordering operator<=>(const CTFSPacket& lhs, const CTFSPacket& rhs) noexcept;
-
 
     /**
      * Determines equality between two packets by their sequence numbers.

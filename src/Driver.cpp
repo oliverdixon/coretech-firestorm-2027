@@ -12,7 +12,6 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
-#include <print>
 
 #include "CTFSPacket.hpp"
 #include "PacketFilter.hpp"
@@ -28,37 +27,61 @@ void Driver::run(const std::filesystem::path& pdf_destination)
     const auto forward_callback = std::bind_front(&Driver::forward_bytes, this);
     const auto capture_callback = std::bind_front(&Driver::capture_packet, this);
 
+    const TCPConnection incoming{incoming_port};
+
     for (std::span<const std::byte> bytes = incoming.read(storage); !bytes.empty(); bytes = incoming.read(storage))
         filter.consume(bytes, forward_callback, capture_callback);
     filter.finish(forward_callback);
 
-    std::println(std::cout, "Captured {} packets.\nForwarded {} bytes.", packets.size(), forwarded_bytes_count);
     write_pdf(pdf_destination);
+    packets.clear();
 }
 
-void Driver::forward_bytes(std::span<const std::byte> bytes)
+void Driver::forward_bytes(const std::span<const std::byte> bytes)
 {
-    std::println(std::cout, "Forwarding {} bytes.", bytes.size());
-    forwarded_bytes_count += bytes.size();
+    if (!outgoing.has_value())
+        outgoing.emplace(endpoint_addr, outgoing_port);
+
+    outgoing->write_all(bytes);
 }
 
 void Driver::capture_packet(CTFSPacket&& packet)
 {
-    std::println(std::cout,
-                 "Capturing packet #{} of {} bytes.",
-                 packet.get_sequence_number(),
-                 packet.observe_payload().size());
-
-    packets.insert(std::move(packet));
+    if (!packets.insert(std::move(packet)).second)
+        throw std::invalid_argument("Duplicate CTFS packet sequence number.");
 }
 
 void Driver::write_pdf(const std::filesystem::path& pdf_destination) const
 {
-    std::ofstream out(pdf_destination, std::ios::binary | std::ios::out);
+    std::ofstream file(pdf_destination, std::ios::binary | std::ios::out);
+    file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+
     for (const auto& packet : packets) {
         const auto payload = packet.observe_payload();
-        out.write(reinterpret_cast<const char*>(payload.data()), static_cast<std::streamsize>(payload.size()));
+        file.write(reinterpret_cast<const char*>(payload.data()), static_cast<std::streamsize>(payload.size()));
     }
 }
 
 } // namespace firestorm
+
+/**
+ * FIRE STORM entry point.
+ *
+ * Runs FIRE STORM with its configured endpoints and output destination.
+ *
+ * @return Zero on success; nonzero if networking, parsing, or output fails.
+ */
+int main()
+{
+    using namespace firestorm;
+
+    try {
+        Driver driver;
+        driver.run({"./file.pdf"});
+        return 0;
+    } catch (const std::exception& error) {
+        std::println(std::cerr, "FIRE STORM failed: {}", error.what());
+    }
+
+    return 0;
+}

@@ -7,7 +7,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(FireStorm
         src/TCPConnection.cpp
         src/TCPConnection.hpp
-        src/Firestorm.cpp
         src/CTFSPacket.cpp
         src/CTFSPacket.hpp
         src/PacketFilter.cpp
