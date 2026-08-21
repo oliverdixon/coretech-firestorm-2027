@@ -3,6 +3,7 @@ project(FireStorm)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 
 add_executable(FireStorm
         src/TCPConnection.cpp
@@ -22,4 +23,26 @@ add_executable(FireStorm
         src/CTFSRecordView.cpp
         src/Logger.cpp
         src/Logger.hpp
+)
+
+target_compile_options(FireStorm PRIVATE
+        $<$<CONFIG:Release>:
+        -O3
+        -DNDEBUG
+        -fvisibility=hidden
+        -fvisibility-inlines-hidden
+        -fstack-protector-strong
+        -ffunction-sections
+        -fdata-sections
+        >
+)
+
+target_link_options(FireStorm PRIVATE
+        $<$<CONFIG:Release>:
+        -Wl,--gc-sections
+        -Wl,-z,relro
+        -Wl,-z,now
+        -Wl,-z,noexecstack
+        -pie
+        >
 )

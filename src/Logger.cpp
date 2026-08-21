@@ -16,11 +16,13 @@ namespace firestorm
 
 void Logger::log(const Level level, const std::string_view message, const std::source_location location)
 {
+#ifndef NDEBUG
     const auto line =
         std::format("[{}] {}:{} says: {}", level_to_string(level), location.file_name(), location.line(), message);
 
     auto stream = std::osyncstream(level == Level::Warning ? std::cerr : std::cout);
     stream << line << '\n';
+#endif
 }
 
 std::string_view Logger::level_to_string(const Level level)
