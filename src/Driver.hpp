@@ -31,6 +31,8 @@ namespace firestorm
 class Driver
 {
 public:
+    explicit Driver(FrameRouter::Policy routing_policy);
+
     /**
      * Processes the incoming stream and reconstructs the captured PDF.
      *

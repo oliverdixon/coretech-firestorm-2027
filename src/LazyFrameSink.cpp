@@ -31,10 +31,10 @@ void LazyFrameSink::send(const std::span<const std::byte> frame)
             transport.emplace(host, port);
             LOG_F_INFO("Established forwarding TCP connection to {}:{}.", host, port);
         } catch (const std::exception& error) {
-            LOG_F_WARNING("Could not establish connection to {}:{}. Destined frames will be dropped.\nReason: {}\n",
-                        host,
-                        port,
-                        error.what());
+            LOG_F_WARNING("Could not establish connection to {}:{}. Destined frames will be dropped. Reason: {}",
+                          host,
+                          port,
+                          error.what());
         }
 
     if (transport.has_value()) {

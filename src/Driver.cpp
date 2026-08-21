@@ -20,6 +20,11 @@
 namespace firestorm
 {
 
+Driver::Driver(const FrameRouter::Policy routing_policy) :
+    frame_router(routing_policy)
+{
+}
+
 void Driver::run()
 {
     static constexpr std::uint16_t incoming_port = 5733;
@@ -93,12 +98,20 @@ void Driver::write_pdf(std::ofstream& output, const std::set<CTFSPacket>& packet
  *
  * @return Zero on success; nonzero if networking, parsing, or output fails.
  */
-int main()
+int main(const int argc, const char* const* const argv)
 {
     using namespace firestorm;
 
+    const auto args = std::span{argv, static_cast<std::size_t>(argc)};
+    const auto policy = std::ranges::contains(args | std::views::transform([](const char* const arg) {
+                                                  return std::string_view{arg};
+                                              }),
+                                              "--classified")
+                            ? FrameRouter::Policy::Classified
+                            : FrameRouter::Policy::Passthrough;
+
     try {
-        Driver driver;
+        Driver driver(policy);
         driver.run();
         return 0;
     } catch (const std::exception& error) {

@@ -24,6 +24,14 @@ namespace firestorm
 class FrameRouter
 {
 public:
+    enum class Policy
+    {
+        Passthrough,
+        Classified
+    };
+
+    explicit FrameRouter(Policy policy);
+
     void route(const EthernetFrameView& frame);
 
     void print_summary() const;
@@ -49,6 +57,8 @@ private:
 
     [[nodiscard]] static constexpr bool has_monitored_destination(MACAddressView destination) noexcept;
     [[nodiscard]] static constexpr bool has_malicious_source(MACAddressView source) noexcept;
+
+    Policy policy;
 
     LazyFrameSink tcp_sink{endpoint_addr, tcp_port};
     LazyFrameSink monitor_sink{endpoint_addr, monitor_port};
