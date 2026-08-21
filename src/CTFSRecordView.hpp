@@ -32,6 +32,9 @@ struct CTFSPacketView
     /** Complete encoded CTFS packet including its header and payload. */
     std::span<const std::byte> bytes;
 
+    /** Portion of the header for the padding; should always be zero. */
+    std::span<const std::byte, 3> padding;
+
     /** Packet payload excluding the CTFS header. */
     std::span<const std::byte> payload;
 

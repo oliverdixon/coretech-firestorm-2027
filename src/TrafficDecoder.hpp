@@ -226,6 +226,7 @@ bool TrafficDecoder::consume_ctfs_record(const std::span<const std::byte> availa
     const auto record_bytes = available.first(record_size);
     const CTFSPacketView packet_view{
         .bytes = record_bytes,
+        .padding = record_bytes.subspan<13, 3>(),
         .payload = record_bytes.subspan(header_size, data_length),
         .sequence_number = sequence_number,
         .data_length = data_length,
