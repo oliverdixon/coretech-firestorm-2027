@@ -140,7 +140,11 @@ int TCPConnection::get_accept_fd(const std::uint16_t port)
         if (setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &enabled, sizeof(enabled)) == -1)
             throw std::system_error(errno, std::generic_category(), "setsockopt");
 
-        sockaddr_in address{.sin_family = AF_INET, .sin_port = htons(port), .sin_addr = {.s_addr = htonl(INADDR_ANY)}};
+        sockaddr_in address{
+            .sin_family = AF_INET,
+            .sin_port = htons(port),
+            .sin_addr = {.s_addr = htonl(INADDR_LOOPBACK)}
+        };
 
         // Bind the listener to the address and listen.
         if (bind(listener, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == -1)

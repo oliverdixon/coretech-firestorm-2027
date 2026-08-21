@@ -55,12 +55,14 @@ public:
      * @note If @c NDEBUG is set, this function is a no-op.
      */
     template <typename... Args>
-    static void log_f(const Level level,
-                      const std::source_location location,
-                      std::format_string<Args...> fmt,
-                      Args&&... args)
+    static void log_f([[maybe_unused]] const Level level,
+                      [[maybe_unused]] const std::source_location location,
+                      [[maybe_unused]] std::format_string<Args...> fmt,
+                      [[maybe_unused]] Args&&... args)
     {
+#ifndef NDEBUG
         log(level, std::format(fmt, std::forward<Args>(args)...), location);
+#endif
     }
 
 private:
@@ -74,6 +76,8 @@ private:
 };
 
 } // namespace firestorm
+
+#ifndef NDEBUG
 
 /**
  * Logs a formatted info-level message using firestorm::Logger::log_f.
@@ -114,5 +118,14 @@ private:
     do {                                                                                                               \
         Logger::log(Logger::Level::Warning, msg, std::source_location::current());                                     \
     } while (0)
+
+#else
+
+#define LOG_F_INFO(msg, ...)
+#define LOG_F_WARNING(msg, ...)
+#define LOG_INFO(msg)
+#define LOG_WARNING(msg)
+
+#endif
 
 #endif // FIRESTORM_LOGGER_HPP

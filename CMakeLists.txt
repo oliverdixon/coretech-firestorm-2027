@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.28)
 project(FireStorm)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -25,6 +25,9 @@ add_executable(FireStorm
 )
 
 target_compile_options(FireStorm PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
         $<$<CONFIG:Release>:
         -O3
         -DNDEBUG
@@ -43,5 +46,6 @@ target_link_options(FireStorm PRIVATE
         -Wl,-z,now
         -Wl,-z,noexecstack
         -pie
+        -s
         >
 )

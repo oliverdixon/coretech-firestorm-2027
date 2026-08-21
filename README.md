@@ -28,7 +28,7 @@ Building the software requires the following components:
 
 * A Linux environment or similar.
 * A modern standards-compliant C++ compiler and POSIX standard library implementation: at least Clang 18 or GCC 13;
-* CMake 3.5 or greater;
+* CMake 3.28 or greater;
 * A CMake-compatible build system: `make` or (preferably) Ninja.
 * Optionally, Doxygen to generate HTML documentation from inline source comments.
 
@@ -278,8 +278,8 @@ In Stage 2, non-operational data is segmented according to its source MAC, desti
 </tbody>
 </table>
 
-[1] Malicious traffic is dropped only if it is not also monitored. If a non-operational packet has a monitored source
-MAC, it will be routed in accordance with the _Monitored_ classification.
+[1] Malicious traffic is dropped only if it is not also monitored. If a non-operational packet has a monitored
+destination MAC, it will be routed in accordance with the _Monitored_ classification.
 
 ### Performance Considerations
 

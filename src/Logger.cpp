@@ -14,7 +14,9 @@
 namespace firestorm
 {
 
-void Logger::log(const Level level, const std::string_view message, const std::source_location location)
+void Logger::log([[maybe_unused]] const Level level,
+                 [[maybe_unused]] const std::string_view message,
+                 [[maybe_unused]] const std::source_location location)
 {
 #ifndef NDEBUG
     const auto line =

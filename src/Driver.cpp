@@ -112,10 +112,7 @@ void Driver::write_pdf(std::ofstream& output, const std::set<CTFSPacket>& packet
  *
  * Runs FIRE STORM with its configured endpoints and output destination.
  *
- * Usage: `./FireStorm [--multishot] [--classified] [--drop-bad-checksums]`
- *
- * In oneshot mode, the application will terminate once the tester script closes the streaming TCP socket. Otherwise,
- * the application will repeatedly reconnect to the socket and persist endpoint socket bindings. Disabled by default.
+ * Usage: `./FireStorm [--classified] [--drop-bad-checksums]`
  *
  * In classified mode, the application will follow the MAC-based routing rules. Otherwise, all non-operational data is
  * forwarded to the primary TCP endpoint. Disabled by default.
@@ -136,7 +133,6 @@ int main(const int argc, const char* const* const argv)
     struct Options
     {
         bool drop_bad_checksums = false;
-        bool multishot = false;
         FrameRouter::Policy policy = FrameRouter::Policy::Passthrough;
     } options;
 
@@ -148,8 +144,6 @@ int main(const int argc, const char* const* const argv)
     for (const auto arg : args)
         if (arg == "--drop-bad-checksums")
             options.drop_bad_checksums = true;
-        else if (arg == "--multishot")
-            options.multishot = true;
         else if (arg == "--classified")
             options.policy = FrameRouter::Policy::Classified;
 
@@ -158,11 +152,6 @@ int main(const int argc, const char* const* const argv)
     try {
         Driver driver(options.policy, options.drop_bad_checksums);
         driver.run();
-
-        if (options.multishot)
-            while (true)
-                driver.run();
-
         return 0;
     } catch (const std::exception& error) {
         LOG_F_WARNING("FIRE STORM failed: {}", error.what());

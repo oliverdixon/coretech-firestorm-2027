@@ -37,6 +37,7 @@ CTFSPacket& CTFSPacket::operator=(CTFSPacket&& other) noexcept
         return *this;
 
     sequence_number = other.sequence_number;
+    file_id = other.file_id;
     payload = std::move(other.payload);
 
     return *this;
