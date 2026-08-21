@@ -43,10 +43,12 @@ void Driver::run()
     decoder.finish(callback);
 
     auto nonempty_groups = packet_groups | std::views::filter([](const auto& g) {
-                               return !g.empty() && g[0].has_value();
+                               return !g.empty();
                            });
+
     for (auto& packet_group : nonempty_groups) {
-        const auto file_id = packet_group[0]->get_file_id();
+        const auto file_id = packet_group[0].get_file_id();
+        std::ranges::sort(packet_group);
 
         try {
             // Set up the destination file.
@@ -55,7 +57,7 @@ void Driver::run()
             output_file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
 
             // Serialise the packets to the file.
-            PDFWriter::write_pdf(output_file, PDFWriter::prepare_pdf_stream(packet_group));
+            PDFWriter::write_pdf(output_file, packet_group);
             LOG_F_INFO("Reconstructed {} packets with File ID {} into {}.", packet_group.size(), file_id, path.c_str());
         } catch (const std::exception& error) {
             LOG_F_WARNING("Could not reconstruct packets for File ID {} because {}", file_id, error.what());
@@ -108,16 +110,8 @@ void Driver::process_record(const CTFSPacketView& ctfs_packet_view)
         if (packet_groups.size() < ctfs_packet_view.file_id + 1)
             packet_groups.resize(ctfs_packet_view.file_id + 1);
 
-        // Resize the individual group to store the new packet slot.
-        auto& group = packet_groups[ctfs_packet_view.file_id];
-        if (group.size() < ctfs_packet_view.sequence_number + 1)
-            group.resize(ctfs_packet_view.sequence_number + 1);
-        else if (group[ctfs_packet_view.sequence_number].has_value())
-            LOG_F_WARNING("Dropping CTFS packet with File ID {} and duplicated Sequence Number {}.",
-                          ctfs_packet_view.file_id,
-                          ctfs_packet_view.sequence_number);
-
-        group[ctfs_packet_view.sequence_number].emplace(ctfs_packet_view.make_packet());
+        // Construct the packet and insert into the file's packet group.
+        packet_groups[ctfs_packet_view.file_id].emplace_back(ctfs_packet_view.make_packet());
     }
 }
 

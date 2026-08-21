@@ -96,8 +96,8 @@ private:
     bool drop_bad_checksums;  /**< Should invalid checksums be ignored? */
     FrameRouter frame_router; /**< Routing delegate for forwarding frame packets. */
 
-    /** Ordered sets of packets, grouped by file ID. */
-    std::vector<std::vector<std::optional<CTFSPacket>>> packet_groups;
+    /** Unordered sets of packets, grouped by file ID. */
+    std::vector<std::vector<CTFSPacket>> packet_groups;
 };
 
 } // namespace firestorm
