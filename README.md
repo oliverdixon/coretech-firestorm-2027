@@ -4,8 +4,8 @@
 
 This repository contains the C++ source code and build infrastructure for the [_Operation FIRE
 STORM_](https://github.com/CoreTechSecurity/fire-storm) and _FIRE STORM: Superheated_ challenges from CoreTech Security.
-This solution is submitted in partial fulfilment of **Oliver Dixon**'s application to
-the [2027 graduate Junior Consultant position](https://jobs.eu.lever.co/coretechsecurity/31809178-6182-46d2-9baf-700f410a45de)
+This solution is submitted in partial fulfilment of **Oliver Dixon**'s application to the
+[2027 Graduate Software Engineer position](https://jobs.eu.lever.co/coretechsecurity/31809178-6182-46d2-9baf-700f410a45de)
 at CoreTech Security.
 
 The solution satisfies all mandatory and optional functional requirements as defined by the Stage 1 and Stage 2 briefs:
@@ -57,7 +57,6 @@ $ xdg-open docs/html/index.html
 ```
 
 Alternatively, the rendered HTML can be viewed interactively online at https://owd.semanticpad.com/coretech-firestorm/.
-
 Prior to the submission deadline, viewing the documentation requires HTTPS authentication with the credentials:
 
 * Username: `coretech`
@@ -278,8 +277,20 @@ MAC, it will be routed in accordance with the _Monitored_ classification.
 
 ### Performance Considerations
 
-Due to the potentially high data throughput, runtime performance was considered.
-TODO
+Due to the potentially high data throughput, runtime performance was considered. The sample workloads verify correctness
+but are of insufficient size to allow effective profiling. Nonetheless, preliminary results from `perf` indicate that
+the _FIRE STORM_ executable is network-bound for the duration of its execution, with the reconstruction and filtering of
+packet data contributing negligible amounts of resource usage.
+
+At the implementation level, cache-friendly STL data structures such as ([
+`std::vector`](https://en.cppreference.com/cpp/container/vector) and similar) are used over node-based structures.
+Copying large amounts of data is elided by using lightweight non-owning ranges, such as
+[`std::span`](https://en.cppreference.com/cpp/container/span), with documented lifetime guarantees. Dynamic allocation
+is avoided in all cases except CTFS packet reconstruction, and buffers are maintained using heuristics to avoid
+excessive work during hot loops (see, for example, [
+`TrafficDecoder::compact`](https://github.com/oliverdixon/coretech-firestorm-2027/blob/2dae2339b2a3402e33f05b5cc30fcd99bd7c54a0/src/TrafficDecoder.cpp#L30)).
+Where possible, ranges are statically sized through template specialisation to encourage more aggressive optimisation;
+see, for example, [C++20 statically sized `std::span`](https://en.cppreference.com/cpp/container/span/span).
 
 ### Hardening Considerations
 
