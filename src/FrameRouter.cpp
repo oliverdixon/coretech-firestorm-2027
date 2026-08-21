@@ -48,8 +48,8 @@ void FrameRouter::route(const EthernetFrameView& frame)
     ++frame_count;
 
     if (policy == Policy::Classified) {
-        const auto monitored = has_monitored_destination(frame.dst_mac);
-        const auto malicious = has_malicious_source(frame.src_mac);
+        const auto monitored = has_monitored_destination(frame.dst_mac_prefix);
+        const auto malicious = has_malicious_source(frame.src_mac_prefix);
 
         if (monitored)
             monitor_sink.send(frame.bytes);

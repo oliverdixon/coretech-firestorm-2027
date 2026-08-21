@@ -17,18 +17,25 @@ namespace firestorm
 {
 
 /**
- * @todo Document
+ * Provides a non-owning decoded view of an Ethernet frame.
+ *
+ * The view exposes both the complete frame together with the IP protocol specifier, IPv4 header and payload, and source
+ * and destination MAC addresses. The referenced byte storage must remain valid and unchanged for the lifetime of the
+ * object.
+ *
+ * @note This type does not own the storage referenced by the span members.
  */
 struct EthernetFrameView
 {
+    /** Complete encoded Ethernet frame including its header and payload. */
     std::span<const std::byte> bytes;
 
-    std::span<const std::byte, 6> src_mac;
-    std::span<const std::byte, 6> dst_mac;
+    std::span<const std::byte, 6> src_mac_prefix; /**< Six-byte prefix of the source MAC. */
+    std::span<const std::byte, 6> dst_mac_prefix; /**< Six-byte prefix of the destination MAC. */
 
-    std::span<const std::byte> ip_header;
-    std::span<const std::byte> ip_payload;
-    std::uint8_t ip_protocol;
+    std::span<const std::byte> ip_header;         /**< Encoded IPv4 header. */
+    std::span<const std::byte> ip_payload;        /**< Encoded IPv4 payload. */
+    std::uint8_t ip_protocol;                     /**< Encoded IP protocol (TCP or UDP). */
 };
 
 } // namespace firestorm

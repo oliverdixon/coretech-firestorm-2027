@@ -22,6 +22,9 @@
 namespace firestorm
 {
 
+/**
+ * A non-owning decoded view of operational or non-operational data.
+ */
 using TrafficRecordView = std::variant<CTFSPacketView, EthernetFrameView>;
 
 /**
@@ -33,32 +36,24 @@ template <typename F>
 concept TrafficDecoderCallback = std::invocable<F&, const TrafficRecordView&>;
 
 /**
- * Separates CTFS frames from an arbitrary stream of bytes.
+ * Incrementally decodes typed traffic records from a byte stream.
  *
- * PacketFilter incrementally processes byte chunks that need not correspond to TCP packets, writes, or CTFS frame
- * boundaries. Ordinary bytes are reported through a ForwardCallback, while complete CTFS frames are decoded and
- * reported through a CaptureCallback.
+ * TrafficDecoder accepts arbitrary chunks of bytes that needn't align with record boundaries. It buffers incomplete
+ * input and reports each complete record to a TrafficDecoderCallback as a TrafficRecordView.
  *
- * The filter retains incomplete markers, headers, and payloads between calls @ref consume. After the input stream
- * stream closes, @ref finish must be called to flush any remaining ordinary bytes and detect a truncated CTFS frame.
+ * The input stream may contain encoded variants of the following record types:
+ *  - CTFS packets, identified by a leader @c CTFS magic value; or
+ *  - Ethernet frames containing arbitrary IPv4 packets.
  *
- * A CTFS frame is interpreted as:
+ * The interfaces are defined in /README.md.
  *
- * Offset | Size | Description
- * ------ | ---- | -----------
- * 0      | 4    | "CTFS" magic bytes
- * 4      | 2    | Sequence marker, in network byte order
- * 6      | 2    | Payload length, in network byte order
- * 8      | 8    | Reserved
- * 16     | ...  | Payload
+ * @note Ethernet record boundaries are determined from the IPv4 total-length field. The decoder currently only accepts
+ * Ethernet frames carrying IPv4 packets.
  *
- * @note The PacketFilter is independent of the source and destination transports.
+ * @note Views passed to a callback refer to internal storage and remain valid only for the duration of the callback
+ * invocation. A callback must copy any data that it needs to retain.
  *
- * @note Spans passed to the ForwardCallback refer to internal storage and remain valid only for the duration of the
- * callback invocation.
- *
- * @warning The PacketFilter is neither thread-safe nor reentrant. A callback must not call @ref consume or @ref finish
- * on the same filter.
+ * @warning TrafficDecoder is neither thread-safe nor reentrant.
  */
 class TrafficDecoder
 {
@@ -100,13 +95,51 @@ private:
      */
     static std::uint32_t decode_big_endian(std::span<const std::byte, 4> bytes) noexcept;
 
+    /**
+     * Attempts to decode one CTFS packet from the beginning of @p available.
+     *
+     * If a complete packet is available, constructs a CTFSPacketView, and invokes @p callback with the view. The
+     * read head is advanced past the packet. If the header or payload is incomplete, no callback is invoked and no
+     * bytes are consumed.
+     *
+     * @param available Unprocessed bytes beginning with a CTFS packet.
+     * @param callback Callback to invoke with the decoded CTFSPacketView.
+     *
+     * @return True if a complete CTFS packet was consumed; false otherwise.
+     *
+     * @note The CTFSPacketView supplied to @p callback refers to decoder-owned storage and remains valid only for the
+     * duration of the callback invocation.
+     */
     bool consume_ctfs_record(std::span<const std::byte> available, TrafficDecoderCallback auto&& callback);
+
+    /**
+     * Attempts to decode one Ethernet frame from the beginning of @p available.
+     *
+     * The frame length is obtained from the IPv4 header. If a complete frame is available, constructs an
+     * EthernetFrameView, invokes @p callback with the view, and advances the read head past the packet. If the Ethernet
+     * or IPv4 data is incomplete, no callback is invoked and no bytes are consumed.
+     *
+     * @param available Unprocessed bytes beginning with an Ethernet frame.
+     * @param callback Callback to invoke with the decoded EthernetFrameView.
+     *
+     * @return True if a complete Ethernet frame was decoded; false otherwise.
+     *
+     * @throws std::runtime_error The frame has an unsupported EtherType or IP version.
+     * @throws std::runtime_error The frame has an invalid length.
+     *
+     * @note The EthernetFrameView supplied to @p callback refers to decoder-owned storage and remains valid only for
+     * the duration of the callback invocation.
+     */
     bool consume_ethernet_frame(std::span<const std::byte> available, TrafficDecoderCallback auto&& callback);
 
     /**
-     * Removes processed bytes from the front of the buffer.
+     * Discards the processed prefix of the internal input buffer.
+     *
+     * Moves any unprocessed bytes to the beginning of the buffer and resets the consumed-byte count.
      *
      * @post `consumed == 0`
+     *
+     * @throws std::bad_alloc Reorganising the buffer requires an allocation that fails.
      */
     void compact();
 
@@ -215,8 +248,8 @@ bool TrafficDecoder::consume_ethernet_frame(const std::span<const std::byte> ava
     const EthernetFrameView frame_view{
         .bytes = frame_bytes,
 
-        .src_mac = frame_bytes.subspan<6, 6>(),
-        .dst_mac = frame_bytes.first<6>(),
+        .src_mac_prefix = frame_bytes.subspan<6, 6>(),
+        .dst_mac_prefix = frame_bytes.first<6>(),
 
         .ip_header = ip_bytes.first(ip_header_size),
         .ip_payload = ip_bytes.subspan(ip_header_size),

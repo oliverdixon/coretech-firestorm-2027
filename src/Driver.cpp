@@ -67,9 +67,11 @@ void Driver::process_record(const CTFSPacketView& ctfs_packet_view)
 
     if (expected_cs == ctfs_packet_view.received_checksum) {
         if (!packet_groups[ctfs_packet_view.file_id].emplace(ctfs_packet_view.make_packet()).second)
-            throw std::invalid_argument("Duplicate CTFS packet sequence number.");
+            LOG_F_WARNING("Dropping CTFS packet with File ID {} and duplicated Sequence Number {}.",
+                          ctfs_packet_view.file_id,
+                          ctfs_packet_view.sequence_number);
     } else
-        LOG_F_WARNING("Dropping CTFS packet (F#{}, S#{}) due to invalid checksum: expected {}, got {}.",
+        LOG_F_WARNING("Dropping CTFS packet (F#{}, S#{}) due to invalid checksum: expected {:#X}, got {:#X}.",
                       ctfs_packet_view.file_id,
                       ctfs_packet_view.sequence_number,
                       expected_cs,

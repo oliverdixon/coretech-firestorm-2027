@@ -138,11 +138,11 @@ packet
 
 #### Non-Operational Data Transport Headers
 
-The Ethernet II headers of non-operational data detain MAC addresses and EtherTypes:
+The Ethernet headers of non-operational data detain MAC addresses and EtherTypes:
 
 ```mermaid
 ---
-title: Ethernet II Header
+title: Ethernet Header
 ---
 packet
 +48: "Destination MAC"
@@ -157,7 +157,10 @@ The EtherType field is set according to the IP version in use:
 | IPv4       | `0x0800`  |  
 | IPv6       | `0x86DD`  |  
 
-Ethernet II headers are followed by the IPv4 header.
+Ethernet headers are followed by the IPv4 header:
+[RFC 791](https://datatracker.ietf.org/doc/html/rfc791#section-3.1),
+[RFC 2474](https://datatracker.ietf.org/doc/html/rfc2474#section-3),
+[RFC 3168](https://datatracker.ietf.org/doc/html/rfc3168#section-5).
 
 ```mermaid
 ---
@@ -256,6 +259,7 @@ MAC, it will be routed in accordance with the _Monitored_ classification.
 
 ### Performance Considerations
 
+Due to the potentially high data throughput, runtime performance was considered.
 TODO
 
 ### Hardening Considerations

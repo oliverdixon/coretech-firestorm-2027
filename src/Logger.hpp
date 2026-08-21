@@ -16,7 +16,7 @@ namespace firestorm
 {
 
 /**
- * @todo Document
+ * Provides a simple statically accessible console logging interface.
  */
 class Logger
 {
@@ -36,6 +36,8 @@ public:
      * @param level The level of the message.
      * @param message The unformatted message (string literal).
      * @param location The optional origin of the message.
+     *
+     * @note If @c NDEBUG is set, this function is a no-op.
      */
     static void log(Level level,
                     std::string_view message,
@@ -47,8 +49,10 @@ public:
      * @tparam Args Types of variadic arguments for the formatter.
      * @param level The level of the message.
      * @param location The origin of the message.
-     * @param fmt The <code>printf</code>-style format string of the message.
+     * @param fmt The @c printf style format string of the message.
      * @param args The values for the format string.
+     *
+     * @note If @c NDEBUG is set, this function is a no-op.
      */
     template <typename... Args>
     static void log_f(const Level level,
