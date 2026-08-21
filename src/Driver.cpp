@@ -42,15 +42,23 @@ void Driver::run()
         decoder.consume(bytes, callback);
     decoder.finish(callback);
 
-    for (const auto& [file_id, packets] : std::views::enumerate(packet_groups)) {
+    auto nonempty_groups = packet_groups | std::views::filter([](const auto& g) {
+                               return !g.empty() && g[0].has_value();
+                           });
+    for (const auto& packet_group : nonempty_groups) {
+        const auto file_id = packet_group[0]->get_file_id();
+
         try {
+            // Set up the destination file.
             const auto path = std::filesystem::current_path() / std::format("{}.pdf", static_cast<unsigned int>(file_id));
             std::ofstream output_file(path, std::ios::binary | std::ios::out);
             output_file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-            PDFWriter::write_pdf(output_file, PDFWriter::prepare_pdf_stream(packets));
-            LOG_F_INFO("Reconstructed {} packets with File ID {} into {}.", packets.size(), file_id, path.c_str());
+
+            // Serialise the packets to the file.
+            PDFWriter::write_pdf(output_file, PDFWriter::prepare_pdf_stream(packet_group));
+            LOG_F_INFO("Reconstructed {} packets with File ID {} into {}.", packet_group.size(), file_id, path.c_str());
         } catch (const std::exception& error) {
-            LOG_F_WARNING("Could not reconstruct packets for File ID {} because: {}.", file_id, error.what());
+            LOG_F_WARNING("Could not reconstruct packets for File ID {} because {}", file_id, error.what());
         }
     }
 
