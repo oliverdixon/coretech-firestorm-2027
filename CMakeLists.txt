@@ -22,6 +22,7 @@ add_executable(FireStorm
         src/CTFSRecordView.cpp
         src/Logger.cpp
         src/Logger.hpp
+        src/PDFWriter.hpp
 )
 
 target_compile_options(FireStorm PRIVATE

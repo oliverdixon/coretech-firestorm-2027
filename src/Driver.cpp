@@ -15,6 +15,7 @@
 
 #include "CTFSPacket.hpp"
 #include "Logger.hpp"
+#include "PDFWriter.hpp"
 #include "TrafficDecoder.hpp"
 
 namespace firestorm
@@ -45,7 +46,7 @@ void Driver::run()
             const auto path = std::filesystem::current_path() / std::format("{}.pdf", static_cast<unsigned int>(file_id));
             std::ofstream output_file(path, std::ios::binary | std::ios::out);
             output_file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-            write_pdf(output_file, prepare_pdf_stream(packets));
+            PDFWriter::write_pdf(output_file, PDFWriter::prepare_pdf_stream(packets));
             LOG_F_INFO("Reconstructed {} packets with File ID {} into {}.", packets.size(), file_id, path.c_str());
         } catch (const std::exception& error) {
             LOG_F_WARNING("Could not reconstruct packets for File ID {} because: {}.", file_id, error.what());
