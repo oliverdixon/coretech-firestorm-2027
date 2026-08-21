@@ -17,8 +17,8 @@ The solution satisfies all mandatory and optional functional requirements as def
 * Supporting optional build-time hardening to resist inspection by static and dynamic analysis tools.
 
 Additionally, non-functional requirements such as runtime performance, detection vulnerability, and resource
-requirements were considered. These considerations are discussed under _Performance_, _Hardening_, and _Implementation
-Details_, respectively (TODO add hyperlinks).
+requirements were considered. These are discussed under [_Performance Considerations_](#performance-considerations)
+and [_Hardening Considerations_](#hardening-considerations).
 
 ## Building
 
@@ -43,7 +43,7 @@ $ cmake --build cmake-build-debug
 In the debug configuration, minimal optimisation is undertaken, and all debugging symbols are left resident in the
 executable. At runtime, log messages are produced on `stdout` and `stderr` to indicate status and warnings. In the
 release configuration, extensive optimisation and hardening takes place to resist analysis and detection; these methods
-are discussed in _Hardening_ (TODO add hyperlink).
+are discussed in [_Hardening Considerations_](#hardening-considerations).
 
 ## Execution and Testing
 
@@ -111,9 +111,13 @@ OK
 ### Interface Description
 
 There are two central interfaces known to the _FIRE STORM_ application: operational data (CTFS), and non-operational
-data; non-operational data may be sent over TCP or UDP.
+data; non-operational data may be sent over TCP/IP or UDP/IP. All packets are sent in network byte order (Big Endian);
+no assumptions are made on the host byte ordering. At the IP layer, only IPv4 is supported.
 
-The CTFS protocol specification consists of a 16-byte header followed by an arbitrary amount of data.
+#### Operational Data Packets
+
+The CTFS protocol specification consists of a 16-byte header followed by an arbitrary amount of data. They are
+identified by the magic bytes `CTFS`.
 
 ```mermaid
 ---
@@ -132,10 +136,191 @@ packet
 +32: "Data (variable length)"
 ```
 
-### Routing Details
+#### Non-Operational Data Transport Headers
+
+The Ethernet II headers of non-operational data detain MAC addresses and EtherTypes:
+
+```mermaid
+---
+title: Ethernet II Header
+---
+packet
++48: "Destination MAC"
++48: "Source MAC"
++16: "EtherType"
+```
+
+The EtherType field is set according to the IP version in use:
+
+| IP Version | EtherType | 
+|------------|-----------|
+| IPv4       | `0x0800`  |  
+| IPv6       | `0x86DD`  |  
+
+Ethernet II headers are followed by the IPv4 header.
+
+```mermaid
+---
+title: IPv4 Header
+---
+packet
++4:  "Version"
++4:  "IHL"
++6:  "DSCP"
++2:  "ECN"
++16: "Total Length"
++16: "Identification"
++3:  "Flags"
++13: "Fragment Offset"
++8:  "TTL"
++8:  "Protocol"
++16: "Header Checksum"
++32: "Source IP Address"
++32: "Destination IP Address"
+```
+
+The Protocol field denotes the transport protocol:
+
+| Transport Protocol | Value |
+|--------------------|-------|
+| TCP                | `6`   |
+| UDP                | `17`  |
+
+### Capture and Routing Details
+
+#### Operational Data
+
+Data identified as operational is captured, decoded according to the protocol definition, and reordered in a strong
+ordering according to its File ID and Sequence Number. Following the transmission, payloads of operational data are
+concatenated in the strong ordering and formed into a single PDF document, which is exported with the filename
+`./N.pdf`, where `N` is the File ID.
+
+#### Non-Operational Data
+
+In Stage 1, all non-operational data is forwarded to the endpoint 127.0.0.1:5744.
+
+In Stage 2, non-operational data is segmented according to its source MAC, destination MAC, and protocol.
+
+<table>
+<thead>
+  <tr>
+    <th>Classification</th>
+    <th>Transport Protocol</th>
+    <th>Routing Destination</th>
+    <th>Source MAC Prefix</th>
+    <th>Destination MAC Prefix</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td rowspan="3">Monitored</td>
+    <td rowspan="3">TCP/UDP</td>
+    <td rowspan="3">127.0.0.1:5745</td>
+    <td rowspan="3">*</td>
+    <td>00:1A:A0</td>
+  </tr>
+  <tr>
+    <td>00:1E:C9</td>
+  </tr>
+  <tr>
+    <td>00:15:5D</td>
+  </tr>
+  <tr>
+    <td rowspan="3">Malicious</td>
+    <td rowspan="3">TCP/UDP</td>
+    <td rowspan="3">Dropped [1]</td>
+    <td>00:0C:29</td>
+    <td rowspan="3">*</td>
+  </tr>
+  <tr>
+    <td>00:50:56</td>
+  </tr>
+  <tr>
+    <td>00:1C:14</td>
+  </tr>
+  <tr>
+    <td rowspan="2">Unclassified</td>
+    <td>TCP</td>
+    <td>127.0.0.1:5744</td>
+    <td rowspan="2" colspan="2">*</td>
+  </tr>
+  <tr>
+    <td>UDP</td>
+    <td>127.0.0.1:5746</td>
+  </tr>
+</tbody>
+</table>
+
+[1] Malicious traffic is dropped only if it is not also monitored. If a non-operational packet has a monitored source
+MAC, it will be routed in accordance with the _Monitored_ classification.
 
 ### Performance Considerations
 
+TODO
+
 ### Hardening Considerations
 
-### Implementation Details
+If configured and built with the Release CMake preset, the _FIRE STORM_ will undergo various build-time hardening
+processes through the use of compiler and linker flags.
+
+<table>
+<thead>
+  <tr>
+    <th>Stage</th>
+    <th>Flag</th>
+    <th>Rationale</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td rowspan="7">Compile</td>
+    <td><code>-O3</code></td>
+    <td>Forces the highest level of optimisation (vectorisation; large loop unrolling; function cloning).</td>
+  </tr>
+  <tr>
+    <td><code>-DNDEBUG</code></td>
+    <td>Sets the <code>NDEBUG</code> C macro to disable logging and assertions.</td>
+  </tr>
+  <tr>
+    <td><code>-fvisibility=hidden</code></td>
+    <td>Changes the default ELF symbol visibility from <code>default</code> to <code>hidden</code>.</td>
+  </tr>
+  <tr>
+    <td><code>-fvisibility-inlines-hidden</code></td>
+    <td>Performs <code>-fvisibility=hidden</code> for C++-only functions such as template instantiations.</td>
+  </tr>
+  <tr>
+    <td><code>-fstack-protector-strong</code></td>
+    <td>Inserts a stack canary into vulnerable functions to protect against stack-smashing exploits.</td>
+  </tr>
+  <tr>
+    <td><code>-ffunction-sections</code></td>
+    <td>Place functions into separate ELF sections such that the linker can individually discard unused functions.</td>
+  </tr>
+  <tr>
+    <td><code>-fdata-sections</code></td>
+    <td>Place data into separate ELF sections such that the linker can individually discard unused blocks.</td>
+  </tr>
+  <tr>
+    <td rowspan="5">Link</td>
+    <td><code>--gc-sections</code></td>
+    <td>Garbage-collect unreachable ELF sections.</td>
+  </tr>
+  <tr>
+    <td><code>-z,relro</code></td>
+    <td>Relocate all possible sections into read-only memory following program startup.</td>
+  </tr>
+  <tr>
+    <td><code>-z,now</code></td>
+    <td>Requests immediately ELF symbol binding to maximise the effect of <code>-z,relro</code>.</td>
+  </tr>
+  <tr>
+    <td><code>-z,noexecstack</code></td>
+    <td>Marks code on the executable's stack as non-executable to mitigate code injection.</td>
+  </tr>
+  <tr>
+    <td><code>-pie</code></td>
+    <td>Enforces position-independent addresses to enable effective address space layout randomisation.</td>
+  </tr>
+</tbody>
+</table>
