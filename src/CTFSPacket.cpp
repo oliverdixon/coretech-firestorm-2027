@@ -28,7 +28,7 @@ CTFSPacket::CTFSPacket(const std::uint16_t sequence_number,
     sequence_number(sequence_number),
     file_id(file_id)
 {
-    this->payload.assign_range(payload);
+    this->payload.assign(payload.cbegin(), payload.cend());
 }
 
 CTFSPacket& CTFSPacket::operator=(CTFSPacket&& other) noexcept

@@ -70,7 +70,7 @@ void FrameRouter::route(const EthernetFrameView& frame)
             udp_sink.send(frame.bytes);
             break;
 
-        default: // Unsupported protocol.
+        default: ; // Unsupported protocol.
         }
     } else
         tcp_sink.send(frame.bytes);

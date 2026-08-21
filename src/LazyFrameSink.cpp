@@ -10,7 +10,6 @@
 #include "LazyFrameSink.hpp"
 
 #include <iostream>
-#include <print>
 
 #include "Logger.hpp"
 

@@ -1,9 +1,8 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 3.5)
 project(FireStorm)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 
 add_executable(FireStorm
         src/TCPConnection.cpp
