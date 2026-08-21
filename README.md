@@ -82,10 +82,10 @@ $ cmake-build-debug/FireStorm &
 $ python3 ../stage1/test.py --quiet
 Running test...
 [Info] src/LazyFrameSink.cpp:31 says: Established forwarding TCP connection to 127.0.0.1:5744.
-[Warn] src/Driver.cpp:76 says: Dropping CTFS packet (F#1, S#18) due to invalid checksum: expected 3455538317, got 4242598459.
-[Info] src/Driver.cpp:46 says: Reconstructed 19 packets with file ID 1 into ./1.pdf.
+[Info] src/Driver.cpp:47 says: Reconstructed 20 packets with file ID 1 into 1.pdf.
 [Info] src/FrameRouter.cpp:82 says: Under the passthrough policy, 257 frames have been forwarded.
 [Info] src/LazyFrameSink.cpp:52 says: To the endpoint 127.0.0.1:5744, 257 frames have been sent, and 0 have been dropped.
+[Warn] src/Driver.cpp:84 says: Found CTFS packet (F#1, S#18) with bad checksum: expected 0XCDF7548D, got 0XFCE0EA3B.
 ----------------------------------------------------------------------
 Ran 1 test in 6.003s
 
@@ -105,24 +105,30 @@ Running test...
 [Info] src/LazyFrameSink.cpp:31 says: Established forwarding TCP connection to 127.0.0.1:5744.
 [Info] src/LazyFrameSink.cpp:31 says: Established forwarding TCP connection to 127.0.0.1:5745.
 [Info] src/LazyFrameSink.cpp:31 says: Established forwarding TCP connection to 127.0.0.1:5746.
-[Warn] src/Driver.cpp:76 says: Dropping CTFS packet (F#2, S#689) due to invalid checksum: expected 0XB3274CBE, got 0XC740DA9D.
-[Warn] src/Driver.cpp:76 says: Dropping CTFS packet (F#4, S#337) due to invalid checksum: expected 0X48D1243B, got 0X48D1252B.
-[Warn] src/Driver.cpp:76 says: Dropping CTFS packet (F#3, S#225) due to invalid checksum: expected 0X16CE432F, got 0X16CE441F.
-[Warn] src/Driver.cpp:76 says: Dropping CTFS packet (F#0, S#558) due to invalid checksum: expected 0X67976CB8, got 0X30211A91.
-[Info] src/Driver.cpp:46 says: Reconstructed 559 packets with file ID 0 into ./0.pdf.
-[Info] src/Driver.cpp:46 says: Reconstructed 739 packets with file ID 1 into ./1.pdf.
-[Info] src/Driver.cpp:46 says: Reconstructed 690 packets with file ID 2 into ./2.pdf.
-[Info] src/Driver.cpp:46 says: Reconstructed 226 packets with file ID 3 into ./3.pdf.
-[Info] src/Driver.cpp:46 says: Reconstructed 338 packets with file ID 4 into ./4.pdf.
+[Info] src/Driver.cpp:47 says: Reconstructed 560 packets with file ID 0 into 0.pdf.
+[Info] src/Driver.cpp:47 says: Reconstructed 739 packets with file ID 1 into 1.pdf.
+[Info] src/Driver.cpp:47 says: Reconstructed 691 packets with file ID 2 into 2.pdf.
+[Info] src/Driver.cpp:47 says: Reconstructed 227 packets with file ID 3 into 3.pdf.
+[Info] src/Driver.cpp:47 says: Reconstructed 339 packets with file ID 4 into 4.pdf.
 [Info] src/FrameRouter.cpp:88 says: Under the classifying policy, 257 frames have been routed, of which 41 were dropped for being malicious. In particular:
 [Info] src/LazyFrameSink.cpp:52 says: To the endpoint 127.0.0.1:5744, 193 frames have been sent, and 0 have been dropped.
 [Info] src/LazyFrameSink.cpp:52 says: To the endpoint 127.0.0.1:5745, 93 frames have been sent, and 0 have been dropped.
 [Info] src/LazyFrameSink.cpp:52 says: To the endpoint 127.0.0.1:5746, 3 frames have been sent, and 0 have been dropped.
+[Warn] src/Driver.cpp:84 says: Found CTFS packet (F#2, S#689) with bad checksum: expected 0XB3274CBE, got 0XC740DA9D.
+[Warn] src/Driver.cpp:84 says: Found CTFS packet (F#4, S#337) with bad checksum: expected 0X48D1243B, got 0X48D1252B.
+[Warn] src/Driver.cpp:84 says: Found CTFS packet (F#3, S#225) with bad checksum: expected 0X16CE432F, got 0X16CE441F.
+[Warn] src/Driver.cpp:84 says: Found CTFS packet (F#0, S#558) with bad checksum: expected 0X67976CB8, got 0X30211A91.
 ----------------------------------------------------------------------
 Ran 1 test in 6.039s
 
 OK
 ```
+
+### Checksum Errors
+
+By default, operational packets that report invalid checksums are reported but not dropped. To ignore packets that fail
+checksum validation, pass `--drop-bad-checksums` on the command line. Note that this may lead to the reconstruction of
+invalid PDF documents on the sample data.
 
 ## Software and Interface Description
 

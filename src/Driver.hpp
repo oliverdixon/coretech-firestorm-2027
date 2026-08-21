@@ -38,8 +38,9 @@ public:
      * time. Note that sockets are bound lazily, so violations are not immediately apparent.
      *
      * @param routing_policy The routing policy for FrameRouter.
+     * @param drop_bad_checksums Should invalid checksums be ignored?
      */
-    explicit Driver(FrameRouter::Policy routing_policy);
+    explicit Driver(FrameRouter::Policy routing_policy, bool drop_bad_checksums);
 
     /**
      * Processes the incoming stream and reconstructs the captured PDF.
@@ -106,6 +107,7 @@ private:
      */
     static void write_pdf(std::ofstream& output, const std::set<CTFSPacket>& packets);
 
+    bool drop_bad_checksums;                                  /**< Should invalid checksums be ignored? */
     FrameRouter frame_router;                                   /**< Routing delegate for forwarding frame packets. */
     std::map<std::uint8_t, std::set<CTFSPacket>> packet_groups; /**< Ordered sets of packets, grouped by file ID. */
 };
