@@ -108,9 +108,29 @@ OK
 
 ## Software and Interface Description
 
-TODO
-
 ### Interface Description
+
+There are two central interfaces known to the _FIRE STORM_ application: operational data (CTFS), and non-operational
+data; non-operational data may be sent over TCP or UDP.
+
+The CTFS protocol specification consists of a 16-byte header followed by an arbitrary amount of data.
+
+```mermaid
+---
+title: CTFS Packet Format
+---
+packet
++8: "'C'"
++8: "'T'"
++8: "'F'"
++8: "'S'"
++16: "Sequence Number"
++16: "Data Length"
++8: "File ID"
++32: "Checksum"
++24: "Padding"
++32: "Data (variable length)"
+```
 
 ### Routing Details
 
