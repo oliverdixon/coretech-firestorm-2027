@@ -38,13 +38,18 @@ void Driver::run()
 
     for (std::span<const std::byte> bytes = source.read(storage); !bytes.empty(); bytes = source.read(storage))
         decoder.consume(bytes, callback);
+    decoder.finish(callback);
 
-    for (const auto& [file_id, packets] : packet_groups) {
-        const auto path = std::filesystem::current_path() / std::format("{}.pdf", static_cast<unsigned int>(file_id));
-        std::ofstream output_file(path, std::ios::binary | std::ios::out);
-        output_file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-        write_pdf(output_file, packets);
-        LOG_F_INFO("Reconstructed {} packets with file ID {} into {}.", packets.size(), file_id, path.c_str());
+    for (const auto& [file_id, packets] : std::views::enumerate(packet_groups)) {
+        try {
+            const auto path = std::filesystem::current_path() / std::format("{}.pdf", static_cast<unsigned int>(file_id));
+            std::ofstream output_file(path, std::ios::binary | std::ios::out);
+            output_file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+            write_pdf(output_file, prepare_pdf_stream(packets));
+            LOG_F_INFO("Reconstructed {} packets with File ID {} into {}.", packets.size(), file_id, path.c_str());
+        } catch (const std::exception& error) {
+            LOG_F_WARNING("Could not reconstruct packets for File ID {} because: {}.", file_id, error.what());
+        }
     }
 
     frame_router.print_summary();
@@ -86,23 +91,27 @@ void Driver::process_record(const CTFSPacketView& ctfs_packet_view)
         }
     }
 
-    if (should_add && !packet_groups[ctfs_packet_view.file_id].emplace(ctfs_packet_view.make_packet()).second)
-        LOG_F_WARNING("Dropping CTFS packet with File ID {} and duplicated Sequence Number {}.",
-                      ctfs_packet_view.file_id,
-                      ctfs_packet_view.sequence_number);
+    if (should_add) {
+        // Resize the groups to store the new packet slot vector.
+        if (packet_groups.size() < ctfs_packet_view.file_id + 1)
+            packet_groups.resize(ctfs_packet_view.file_id + 1);
+
+        // Resize the individual group to store the new packet slot.
+        auto& group = packet_groups[ctfs_packet_view.file_id];
+        if (group.size() < ctfs_packet_view.sequence_number + 1)
+            group.resize(ctfs_packet_view.sequence_number + 1);
+        else if (group[ctfs_packet_view.sequence_number].has_value())
+            LOG_F_WARNING("Dropping CTFS packet with File ID {} and duplicated Sequence Number {}.",
+                          ctfs_packet_view.file_id,
+                          ctfs_packet_view.sequence_number);
+
+        group[ctfs_packet_view.sequence_number].emplace(ctfs_packet_view.make_packet());
+    }
 }
 
 void Driver::process_record(const EthernetFrameView& ethernet_frame_view)
 {
     frame_router.route(ethernet_frame_view);
-}
-
-void Driver::write_pdf(std::ofstream& output, const std::set<CTFSPacket>& packets)
-{
-    for (const auto& packet : packets) {
-        const auto payload = packet.observe_payload();
-        output.write(reinterpret_cast<const char*>(payload.data()), static_cast<std::streamsize>(payload.size()));
-    }
 }
 
 } // namespace firestorm

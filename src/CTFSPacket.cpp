@@ -53,7 +53,7 @@ std::uint8_t CTFSPacket::get_file_id() const noexcept
     return file_id;
 }
 
-std::span<const std::byte> CTFSPacket::observe_payload() const noexcept
+const std::vector<std::byte>& CTFSPacket::observe_payload() const noexcept
 {
     return payload;
 }

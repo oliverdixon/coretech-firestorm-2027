@@ -101,7 +101,16 @@ std::size_t TCPConnection::write(const std::span<const std::byte> data) const
 
 int TCPConnection::get_connection_fd(const std::string_view host, const std::uint16_t port)
 {
-    constexpr addrinfo hints{.ai_family = AF_UNSPEC, .ai_socktype = SOCK_STREAM};
+    constexpr addrinfo hints{
+        .ai_flags = 0,
+        .ai_family = AF_UNSPEC,
+        .ai_socktype = SOCK_STREAM,
+        .ai_protocol = IPPROTO_TCP,
+        .ai_addrlen = 0,
+        .ai_addr = nullptr,
+        .ai_canonname = nullptr,
+        .ai_next = nullptr
+    };
 
     const std::string host_str{host};
     const auto port_str = std::to_string(port);
@@ -143,7 +152,8 @@ int TCPConnection::get_accept_fd(const std::uint16_t port)
         sockaddr_in address{
             .sin_family = AF_INET,
             .sin_port = htons(port),
-            .sin_addr = {.s_addr = htonl(INADDR_LOOPBACK)}
+            .sin_addr = {.s_addr = htonl(INADDR_LOOPBACK)},
+            .sin_zero = {}
         };
 
         // Bind the listener to the address and listen.

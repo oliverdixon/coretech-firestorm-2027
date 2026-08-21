@@ -66,6 +66,19 @@ public:
      */
     void consume(std::span<const std::byte> input, TrafficDecoderCallback auto&& callback);
 
+    /**
+     * Finishes processing after the input stream closes.
+     *
+     * Any retained bytes that cannot form a complete CTFS frame are forwarded as ordinary data through @p callback.
+     *
+     * @param callback Callback invoked synchronously for remaining ordinary bytes.
+     *
+     * @throws std::runtime_error The stream ends during a CTFS frame.
+     *
+     * @post On success, the filter contains no buffered input and may be reused for another stream.
+     */
+    void finish(TrafficDecoderCallback auto&& callback);
+
 private:
     /**
      * CTFS frame marker.
@@ -176,6 +189,23 @@ void TrafficDecoder::consume(const std::span<const std::byte> input, TrafficDeco
     }
 
     compact();
+}
+
+void TrafficDecoder::finish(TrafficDecoderCallback auto&& callback)
+{
+    const auto remaining = std::span<const std::byte>{buffer}.subspan(consumed);
+
+    const bool starts_with_magic =
+        remaining.size() >= magic.size() && std::ranges::equal(remaining.first(magic.size()), magic);
+
+    if (starts_with_magic)
+        throw std::runtime_error("Input ended during a CTFS frame.");
+
+    if (!remaining.empty())
+        consume_ethernet_frame(buffer, callback);
+
+    buffer.clear();
+    consumed = 0;
 }
 
 bool TrafficDecoder::consume_ctfs_record(const std::span<const std::byte> available,

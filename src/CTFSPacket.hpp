@@ -84,7 +84,7 @@ public:
      * Retrieves an observing span of the packet payload.
      * @return A non-owning view of the packet payload.
      */
-    [[nodiscard]] std::span<const std::byte> observe_payload() const noexcept;
+    [[nodiscard]] const std::vector<std::byte>& observe_payload() const noexcept;
 
 private:
     std::uint16_t sequence_number;
