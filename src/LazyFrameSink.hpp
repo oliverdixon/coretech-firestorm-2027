@@ -25,7 +25,9 @@ namespace firestorm
  * Lazily established destination for forwarded Ethernet frames.
  *
  * LazyFrameSink defers establishing its TCP connection until the first frame is sent. If the destination cannot be
- * reached, the frame is dropped and the failed connection is not retried by subsequent calls to @ref send.
+ * reached, the connection is retried using an exponential backoff pattern in subsequent packets; i.e., if it fails for
+ * the first time, it will try again on the next packet; if it fails of a second, it waits for two packets, then four,
+ * then eight, etc.
  *
  * @note Constructing a sink performs no network I/O.
  * @warning This class is not thread-safe.
@@ -48,9 +50,10 @@ public:
     /**
      * Sends an Ethernet frame to the destination.
      *
-     * On the first call, we attempt to establish a connection to the endpoint. If the attempt fails, the frame is
-     * counted as dropped and subsequent calls drop frames without retrying the connection. Otherwise, the complete
-     * contents of @p frame are written to the connection.
+     * On the first call, we attempt to establish a connection to the endpoint. If the destination cannot be reached,
+     * the connection is retried using an exponential backoff pattern in subsequent packets; i.e., if it fails for the
+     * first time, it will try again on the next packet; if it fails of a second, it waits for two packets, then four,
+     * then eight, etc.
      *
      * @param frame Complete encoded Ethernet frame to send.
      */
@@ -72,7 +75,12 @@ private:
     std::string host;
     std::uint16_t port;
 
-    bool attempted = false;
+    /** Number of packets to wait before reattempting to establish @ref transport. */
+    std::size_t connection_cooloff = 0;
+
+    /** Total number of failed connection attempts since the last @ref reset_statistics call. */
+    std::size_t failed_connection_attempts = 0;
+
     std::size_t frames_sent = 0;
     std::size_t frames_dropped = 0;
     std::optional<TCPConnection> transport;
