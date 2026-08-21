@@ -16,7 +16,6 @@
 
 #include "CTFSPacket.hpp"
 #include "FrameRouter.hpp"
-#include "LazyFrameSink.hpp"
 #include "TrafficDecoder.hpp"
 
 namespace firestorm

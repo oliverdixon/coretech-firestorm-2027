@@ -34,9 +34,10 @@ struct CTFSPacketView
 
     [[nodiscard]] std::uint32_t compute_checksum() const noexcept;
 
-    [[nodiscard]] bool has_valid_checksum() const noexcept;
-
     [[nodiscard]] CTFSPacket make_packet() const;
+
+private:
+    static constexpr std::uint32_t get_word(std::span<const std::byte, 4> bytes) noexcept;
 };
 
 } // namespace firestorm

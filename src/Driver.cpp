@@ -15,6 +15,7 @@
 #include <ranges>
 
 #include "CTFSPacket.hpp"
+#include "Logger.hpp"
 #include "TrafficDecoder.hpp"
 
 namespace firestorm
@@ -55,9 +56,17 @@ void Driver::process_record_view(const TrafficRecordView& record_view)
 
 void Driver::process_record(const CTFSPacketView& ctfs_packet_view)
 {
-    if (ctfs_packet_view.has_valid_checksum())
+    const auto expected_cs = ctfs_packet_view.compute_checksum();
+
+    if (expected_cs == ctfs_packet_view.received_checksum) {
         if (!packet_groups[ctfs_packet_view.file_id].emplace(ctfs_packet_view.make_packet()).second)
             throw std::invalid_argument("Duplicate CTFS packet sequence number.");
+    } else
+        LOG_F_INFO("Dropping CTFS packet (F#{}, S#{}) due to invalid checksum: expected {}, got {}.",
+                   ctfs_packet_view.file_id,
+                   ctfs_packet_view.sequence_number,
+                   expected_cs,
+                   ctfs_packet_view.received_checksum);
 }
 
 void Driver::process_record(const EthernetFrameView& ethernet_frame_view)
