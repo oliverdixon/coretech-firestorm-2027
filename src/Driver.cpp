@@ -45,7 +45,7 @@ void Driver::run()
     auto nonempty_groups = packet_groups | std::views::filter([](const auto& g) {
                                return !g.empty() && g[0].has_value();
                            });
-    for (const auto& packet_group : nonempty_groups) {
+    for (auto& packet_group : nonempty_groups) {
         const auto file_id = packet_group[0]->get_file_id();
 
         try {
@@ -60,6 +60,8 @@ void Driver::run()
         } catch (const std::exception& error) {
             LOG_F_WARNING("Could not reconstruct packets for File ID {} because {}", file_id, error.what());
         }
+
+        packet_group.clear();
     }
 
     frame_router.print_summary();
