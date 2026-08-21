@@ -20,4 +20,6 @@ add_executable(FireStorm
         src/FrameRouter.hpp
         src/CTFSRecordView.hpp
         src/CTFSRecordView.cpp
+        src/Logger.cpp
+        src/Logger.hpp
 )
