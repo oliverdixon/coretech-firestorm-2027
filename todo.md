@@ -1,3 +1,4 @@
 * Doxygen where needed.
-* Write README.
 * Identify and address performance bottlenecks.
+* Finish README.
+* Address any TODOs in code.
