@@ -27,7 +27,7 @@ public:
     enum class Level
     {
         Info,
-        Error
+        Warning
     };
 
     /**
@@ -37,11 +37,9 @@ public:
      * @param message The unformatted message (string literal).
      * @param location The optional origin of the message.
      */
-    static void log(
-            Level level,
-            std::string_view message,
-            std::source_location location = std::source_location::current()
-    );
+    static void log(Level level,
+                    std::string_view message,
+                    std::source_location location = std::source_location::current());
 
     /**
      * Log a formatted message to the backend with a specific source location.
@@ -53,12 +51,10 @@ public:
      * @param args The values for the format string.
      */
     template <typename... Args>
-    static void log_f(
-            const Level level,
-            const std::source_location location,
-            std::format_string<Args...> fmt,
-            Args&&... args
-    )
+    static void log_f(const Level level,
+                      const std::source_location location,
+                      std::format_string<Args...> fmt,
+                      Args&&... args)
     {
         log(level, std::format(fmt, std::forward<Args>(args)...), location);
     }
@@ -86,13 +82,13 @@ private:
     } while (0)
 
 /**
- * Logs a formatted error-level message using firestorm::Logger::log_f.
+ * Logs a formatted warning-level message using firestorm::Logger::log_f.
  *
  * @param msg The format string, followed by formatted values.
  */
-#define LOG_F_ERROR(msg, ...)                                                                                          \
+#define LOG_F_WARNING(msg, ...)                                                                                        \
     do {                                                                                                               \
-        Logger::log_f(Logger::Level::Error, std::source_location::current(), msg, __VA_ARGS__);                        \
+        Logger::log_f(Logger::Level::Warning, std::source_location::current(), msg, __VA_ARGS__);                      \
     } while (0)
 
 /**
@@ -106,13 +102,13 @@ private:
     } while (0)
 
 /**
- * Logs an unformatted error-level message using firestorm::Logger::log.
+ * Logs an unformatted warning-level message using firestorm::Logger::log.
  *
  * @param msg The string literal to log.
  */
-#define LOG_ERROR(msg)                                                                                                 \
+#define LOG_WARNING(msg)                                                                                               \
     do {                                                                                                               \
-        Logger::log(Logger::Level::Error, msg, std::source_location::current());                                       \
+        Logger::log(Logger::Level::Warning, msg, std::source_location::current());                                     \
     } while (0)
 
 #endif // FIRESTORM_LOGGER_HPP

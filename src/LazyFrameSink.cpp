@@ -12,6 +12,8 @@
 #include <iostream>
 #include <print>
 
+#include "Logger.hpp"
+
 namespace firestorm
 {
 
@@ -27,16 +29,34 @@ void LazyFrameSink::send(const std::span<const std::byte> frame)
         try {
             attempted = true;
             transport.emplace(host, port);
+            LOG_F_INFO("Established forwarding TCP connection to {}:{}.", host, port);
         } catch (const std::exception& error) {
-            std::println(std::cerr,
-                         "Could not establish connection to {}:{}. Destined frames will be dropped.\nReason: {}\n",
-                         host,
-                         port,
-                         error.what());
+            LOG_F_WARNING("Could not establish connection to {}:{}. Destined frames will be dropped.\nReason: {}\n",
+                        host,
+                        port,
+                        error.what());
         }
 
-    if (transport.has_value())
+    if (transport.has_value()) {
+        ++frames_sent;
         transport->write_all(frame);
+    } else
+        ++frames_dropped;
+}
+
+void LazyFrameSink::print_summary() const
+{
+    LOG_F_INFO("To the endpoint {}:{}, {} frames have been sent, and {} have been dropped.",
+               host,
+               port,
+               frames_sent,
+               frames_dropped);
+}
+
+void LazyFrameSink::reset_statistics() noexcept
+{
+    frames_sent = 0;
+    frames_dropped = 0;
 }
 
 } // namespace firestorm

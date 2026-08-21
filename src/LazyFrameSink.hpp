@@ -31,11 +31,16 @@ public:
 
     void send(std::span<const std::byte> frame);
 
+    void print_summary() const;
+    void reset_statistics() noexcept;
+
 private:
     std::string host;
     std::uint16_t port;
 
     bool attempted = false;
+    std::size_t frames_sent = 0;
+    std::size_t frames_dropped = 0;
     std::optional<TCPConnection> transport;
 };
 

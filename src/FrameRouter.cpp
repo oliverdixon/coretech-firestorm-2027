@@ -11,15 +11,17 @@
 
 #include <netinet/in.h>
 
+#include "Logger.hpp"
+
 namespace firestorm
 {
 
 constexpr bool FrameRouter::has_monitored_destination(const MACAddressView destination) noexcept
 {
     static constexpr std::array monitored_destinations{
-        MACPrefix{ std::byte{0x00}, std::byte{0x1a}, std::byte{0xa0} },
-        MACPrefix{ std::byte{0x00}, std::byte{0x1e}, std::byte{0xc9} },
-        MACPrefix{ std::byte{0x00}, std::byte{0x15}, std::byte{0x5d} },
+        MACPrefix{std::byte{0x00}, std::byte{0x1a}, std::byte{0xa0}},
+        MACPrefix{std::byte{0x00}, std::byte{0x1e}, std::byte{0xc9}},
+        MACPrefix{std::byte{0x00}, std::byte{0x15}, std::byte{0x5d}},
     };
 
     return has_any_prefix(destination, monitored_destinations);
@@ -28,9 +30,9 @@ constexpr bool FrameRouter::has_monitored_destination(const MACAddressView desti
 constexpr bool FrameRouter::has_malicious_source(const MACAddressView source) noexcept
 {
     static constexpr std::array malicious_sources{
-        MACPrefix{ std::byte{0x00}, std::byte{0x0c}, std::byte{0x29} },
-        MACPrefix{ std::byte{0x00}, std::byte{0x50}, std::byte{0x56} },
-        MACPrefix{ std::byte{0x00}, std::byte{0x1c}, std::byte{0x14} },
+        MACPrefix{std::byte{0x00}, std::byte{0x0c}, std::byte{0x29}},
+        MACPrefix{std::byte{0x00}, std::byte{0x50}, std::byte{0x56}},
+        MACPrefix{std::byte{0x00}, std::byte{0x1c}, std::byte{0x14}},
     };
 
     return has_any_prefix(source, malicious_sources);
@@ -38,15 +40,20 @@ constexpr bool FrameRouter::has_malicious_source(const MACAddressView source) no
 
 void FrameRouter::route(const EthernetFrameView& frame)
 {
+    ++frame_count;
+
     const auto monitored = has_monitored_destination(frame.dst_mac);
     const auto malicious = has_malicious_source(frame.src_mac);
 
     if (monitored)
         monitor_sink.send(frame.bytes);
 
-    if (malicious)
+    if (malicious) {
         // Drop malicious packets following monitoring.
+        if (!monitored)
+            ++malicious_count;
         return;
+    }
 
     switch (frame.ip_protocol) {
     case IPPROTO_TCP:
@@ -59,6 +66,27 @@ void FrameRouter::route(const EthernetFrameView& frame)
 
     default: // Unsupported protocol.
     }
+}
+
+void FrameRouter::print_summary() const
+{
+    LOG_F_INFO("{} frames have been routed, of which {} were dropped for being malicious. In particular:",
+               frame_count,
+               malicious_count);
+
+    tcp_sink.print_summary();
+    monitor_sink.print_summary();
+    udp_sink.print_summary();
+}
+
+void FrameRouter::reset_statistics() noexcept
+{
+    frame_count = 0;
+    malicious_count = 0;
+
+    tcp_sink.reset_statistics();
+    monitor_sink.reset_statistics();
+    udp_sink.reset_statistics();
 }
 
 } // namespace firestorm

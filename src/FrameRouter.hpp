@@ -26,6 +26,9 @@ class FrameRouter
 public:
     void route(const EthernetFrameView& frame);
 
+    void print_summary() const;
+    void reset_statistics() noexcept;
+
 private:
     using MACAddressView = std::span<const std::byte, 6>;
     using MACPrefix = std::array<std::byte, 3>;
@@ -50,6 +53,9 @@ private:
     LazyFrameSink tcp_sink{endpoint_addr, tcp_port};
     LazyFrameSink monitor_sink{endpoint_addr, monitor_port};
     LazyFrameSink udp_sink{endpoint_addr, udp_port};
+
+    std::size_t frame_count = 0;
+    std::size_t malicious_count = 0;
 };
 
 } // namespace firestorm

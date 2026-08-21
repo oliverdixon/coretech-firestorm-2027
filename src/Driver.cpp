@@ -11,7 +11,6 @@
 
 #include <fstream>
 #include <functional>
-#include <iostream>
 #include <ranges>
 
 #include "CTFSPacket.hpp"
@@ -35,12 +34,15 @@ void Driver::run()
         filter.consume(bytes, callback);
 
     for (const auto& [file_id, packets] : packet_groups) {
-        std::ofstream output_file(std::filesystem::current_path() /
-                                      std::format("{}.pdf", static_cast<unsigned int>(file_id)),
-                                  std::ios::binary | std::ios::out);
+        const auto path = std::filesystem::current_path() / std::format("{}.pdf", static_cast<unsigned int>(file_id));
+        std::ofstream output_file(path, std::ios::binary | std::ios::out);
         output_file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
         write_pdf(output_file, packets);
+        LOG_F_INFO("Reconstructed {} packets with file ID {} into {}.", packets.size(), file_id, path.c_str());
     }
+
+    frame_router.print_summary();
+    frame_router.reset_statistics();
 
     packet_groups.clear();
 }
@@ -62,11 +64,11 @@ void Driver::process_record(const CTFSPacketView& ctfs_packet_view)
         if (!packet_groups[ctfs_packet_view.file_id].emplace(ctfs_packet_view.make_packet()).second)
             throw std::invalid_argument("Duplicate CTFS packet sequence number.");
     } else
-        LOG_F_INFO("Dropping CTFS packet (F#{}, S#{}) due to invalid checksum: expected {}, got {}.",
-                   ctfs_packet_view.file_id,
-                   ctfs_packet_view.sequence_number,
-                   expected_cs,
-                   ctfs_packet_view.received_checksum);
+        LOG_F_WARNING("Dropping CTFS packet (F#{}, S#{}) due to invalid checksum: expected {}, got {}.",
+                      ctfs_packet_view.file_id,
+                      ctfs_packet_view.sequence_number,
+                      expected_cs,
+                      ctfs_packet_view.received_checksum);
 }
 
 void Driver::process_record(const EthernetFrameView& ethernet_frame_view)
@@ -100,7 +102,7 @@ int main()
         driver.run();
         return 0;
     } catch (const std::exception& error) {
-        std::println(std::cerr, "FIRE STORM failed: {}", error.what());
+        LOG_F_WARNING("FIRE STORM failed: {}", error.what());
     }
 
     return 0;
