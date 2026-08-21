@@ -2,9 +2,11 @@
 
 ## Summary
 
-This repository contains the C++ source code and build infrastructure for the _Operation FIRE STORM_ and _FIRE STORM:
-Superheated_ challenges from CoreTech Security. This solution is submitted in partial fulfilment of application to the
-2027 graduate Junior Consultant position at CoreTech Security.
+This repository contains the C++ source code and build infrastructure for the [_Operation FIRE
+STORM_](https://github.com/CoreTechSecurity/fire-storm) and _FIRE STORM: Superheated_ challenges from CoreTech Security.
+This solution is submitted in partial fulfilment of **Oliver Dixon**'s application to
+the [2027 graduate Junior Consultant position](https://jobs.eu.lever.co/coretechsecurity/31809178-6182-46d2-9baf-700f410a45de)
+at CoreTech Security.
 
 The solution satisfies all mandatory and optional functional requirements as defined by the Stage 1 and Stage 2 briefs:
 
@@ -35,7 +37,7 @@ These are available from `apt` on the Ubuntu 24.04 LTS baseline.
 To build _FIRE STORM_, generate the build script for the desired configuration preset (`debug` or `release`) and build
 it:
 
-```shell
+```
 $ cmake --preset debug
 $ cmake --build cmake-build-debug
 ```
@@ -45,13 +47,30 @@ executable. At runtime, log messages are produced on `stdout` and `stderr` to in
 release configuration, extensive optimisation and hardening takes place to resist analysis and detection; these methods
 are discussed in [_Hardening Considerations_](#hardening-considerations).
 
+## Documentation
+
+To build HTML documentation, invoke `doxygen` in the repository root:
+
+```
+$ doxygen
+$ xdg-open docs/html/index.html
+```
+
+Alternatively, the rendered HTML can be viewed interactively online at https://owd.semanticpad.com/coretech-firestorm/.
+
+Prior to the submission deadline, viewing the documentation requires HTTPS authentication with the credentials:
+
+* Username: `coretech`
+* Password: `coretech`
+
 ## Execution and Testing
 
 To test _FIRE STORM_, locate the `FireStorm` executable in the build directory: either `cmake-build-debug` or
 `cmake-build-release`, relative to the location of `CMakeLists.txt`.
 
 In the following examples, the provided test suites (Stage 1 and Stage 2) have been located at `../stage1` and
-`../stage2` respectively.
+`../stage2` respectively. After each invocation, a set of PDF documents will be produced in the current working
+directory.
 
 ### Stage 1 Invocation
 
@@ -219,7 +238,7 @@ In Stage 2, non-operational data is segmented according to its source MAC, desti
     <td rowspan="3">Monitored</td>
     <td rowspan="3">TCP/UDP</td>
     <td rowspan="3">127.0.0.1:5745</td>
-    <td rowspan="3">*</td>
+    <td rowspan="3"><i>Any</i></td>
     <td>00:1A:A0</td>
   </tr>
   <tr>
@@ -233,7 +252,7 @@ In Stage 2, non-operational data is segmented according to its source MAC, desti
     <td rowspan="3">TCP/UDP</td>
     <td rowspan="3">Dropped [1]</td>
     <td>00:0C:29</td>
-    <td rowspan="3">*</td>
+    <td rowspan="3"><i>Any</i></td>
   </tr>
   <tr>
     <td>00:50:56</td>
@@ -245,7 +264,7 @@ In Stage 2, non-operational data is segmented according to its source MAC, desti
     <td rowspan="2">Unclassified</td>
     <td>TCP</td>
     <td>127.0.0.1:5744</td>
-    <td rowspan="2" colspan="2">*</td>
+    <td rowspan="2" colspan="2"><i>Any</i></td>
   </tr>
   <tr>
     <td>UDP</td>
@@ -265,7 +284,8 @@ TODO
 ### Hardening Considerations
 
 If configured and built with the Release CMake preset, the _FIRE STORM_ will undergo various build-time hardening
-processes through the use of compiler and linker flags.
+processes through the use of compiler and linker flags. To debug release builds, `llvm-objcopy` can be used to separate
+the stripped ELF from debugging symbols, the latter of which can be kept private.
 
 <table>
 <thead>
@@ -279,7 +299,7 @@ processes through the use of compiler and linker flags.
   <tr>
     <td rowspan="7">Compile</td>
     <td><code>-O3</code></td>
-    <td>Forces the highest level of optimisation (vectorisation; large loop unrolling; function cloning).</td>
+    <td>Forces the highest level of optimisation (vectorisation; larger loop unrolling; function cloning).</td>
   </tr>
   <tr>
     <td><code>-DNDEBUG</code></td>
@@ -328,3 +348,6 @@ processes through the use of compiler and linker flags.
   </tr>
 </tbody>
 </table>
+
+Statically linking the standard library was also considered, but since _FIRE STORM_ does not cross privilege boundaries,
+it was not considered necessary to mitigate `LD_PRELOAD` attacks.

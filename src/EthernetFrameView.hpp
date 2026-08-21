@@ -30,8 +30,8 @@ struct EthernetFrameView
     /** Complete encoded Ethernet frame including its header and payload. */
     std::span<const std::byte> bytes;
 
-    std::span<const std::byte, 6> src_mac_prefix; /**< Six-byte prefix of the source MAC. */
-    std::span<const std::byte, 6> dst_mac_prefix; /**< Six-byte prefix of the destination MAC. */
+    std::span<const std::byte, 3> src_mac_prefix; /**< Three-byte prefix of the source MAC. */
+    std::span<const std::byte, 3> dst_mac_prefix; /**< Three-byte prefix of the destination MAC. */
 
     std::span<const std::byte> ip_header;         /**< Encoded IPv4 header. */
     std::span<const std::byte> ip_payload;        /**< Encoded IPv4 payload. */

@@ -248,8 +248,8 @@ bool TrafficDecoder::consume_ethernet_frame(const std::span<const std::byte> ava
     const EthernetFrameView frame_view{
         .bytes = frame_bytes,
 
-        .src_mac_prefix = frame_bytes.subspan<6, 6>(),
-        .dst_mac_prefix = frame_bytes.first<6>(),
+        .src_mac_prefix = frame_bytes.subspan<6, 3>(),
+        .dst_mac_prefix = frame_bytes.first<3>(),
 
         .ip_header = ip_bytes.first(ip_header_size),
         .ip_payload = ip_bytes.subspan(ip_header_size),

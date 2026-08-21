@@ -78,7 +78,7 @@ public:
     void reset_statistics() noexcept;
 
 private:
-    using MACAddressView = std::span<const std::byte, 6>; /**< Non-owning view of a six-byte MAC address prefix. */
+    using MACAddressView = std::span<const std::byte, 3>; /**< Non-owning view of a three-byte MAC address prefix. */
     using MACPrefix = std::array<std::byte, 3>;           /**< Three-byte MAC address prefix. */
 
     /** Network address of the sinks. */

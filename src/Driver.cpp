@@ -98,27 +98,44 @@ void Driver::write_pdf(std::ofstream& output, const std::set<CTFSPacket>& packet
  *
  * Runs FIRE STORM with its configured endpoints and output destination.
  *
+ * Usage: `./FireStorm [--multishot] [--classified]`
+ *
+ * In oneshot mode, the application will terminate once the tester script closes the streaming TCP socket. Otherwise,
+ * the application will repeatedly reconnect to the socket and persist endpoint socket bindings.
+ *
+ * In classified mode, the application will follow the MAC-based routing rules. Otherwise, all non-operational data is
+ * forwarded to the primary TCP endpoint.
+ *
+ * @param argc Number of arguments passed on the command line.
+ * @param argv Argument vector.
+ *
  * @return Zero on success; nonzero if networking, parsing, or output fails.
  */
 int main(const int argc, const char* const* const argv)
 {
     using namespace firestorm;
 
-    const auto args = std::span{argv, static_cast<std::size_t>(argc)};
-    const auto policy = std::ranges::contains(args | std::views::transform([](const char* const arg) {
-                                                  return std::string_view{arg};
-                                              }),
-                                              "--classified")
-                            ? FrameRouter::Policy::Classified
-                            : FrameRouter::Policy::Passthrough;
+    const auto args =
+        std::span{argv, static_cast<std::size_t>(argc)} | std::views::transform([](const char* const arg) {
+            return std::string_view{arg};
+        });
+
+    const auto multishot = std::ranges::contains(args, "--multishot");
+    const auto policy = std::ranges::contains(args, "--classified") ? FrameRouter::Policy::Classified
+                                                                    : FrameRouter::Policy::Passthrough;
 
     try {
         Driver driver(policy);
         driver.run();
+
+        if (multishot)
+            while (true)
+                driver.run();
+
         return 0;
     } catch (const std::exception& error) {
         LOG_F_WARNING("FIRE STORM failed: {}", error.what());
     }
 
-    return 0;
+    return 1;
 }
