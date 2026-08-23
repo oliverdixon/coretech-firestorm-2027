@@ -33,7 +33,6 @@ void Driver::run()
     static constexpr std::uint16_t incoming_port = 5733;
 
     std::array<std::byte, 64 * 1024> storage{};
-    TrafficDecoder decoder;
 
     TCPConnection source{incoming_port};
     const auto callback = std::bind_front(&Driver::process_record_view, this);
@@ -117,7 +116,7 @@ void Driver::process_record(const CTFSPacketView& ctfs_packet_view)
 
 void Driver::process_record(const EthernetFrameView& ethernet_frame_view)
 {
-    frame_router.route(ethernet_frame_view);
+    frame_router.route(ethernet_frame_view, decoder.lock_buffers());
 }
 
 } // namespace firestorm

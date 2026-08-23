@@ -12,11 +12,13 @@
 
 #include <cstdint>
 #include <optional>
-#include <span>
 #include <string>
 #include <string_view>
+#include <thread>
 
+#include "EthernetFrameView.hpp"
 #include "TCPConnection.hpp"
+#include "ThreadSafeQueue.hpp"
 
 namespace firestorm
 {
@@ -57,7 +59,7 @@ public:
      *
      * @param frame Complete encoded Ethernet frame to send.
      */
-    void send(std::span<const std::byte> frame);
+    void send(const EthernetFrameView& frame);
 
     /**
      * Report the sink's current transmission statistics.
@@ -72,17 +74,39 @@ public:
     void reset_statistics() noexcept;
 
 private:
+    using FrameQueue = ThreadSafeQueue<EthernetFrameView>;
+
+    struct Statistics
+    {
+        Statistics() noexcept = default;
+
+        std::uint32_t frames_sent = 0;    /**< Number of frames successfully sent and received by the sink. */
+        std::uint32_t frames_dropped = 0; /**< Number of frames dropped due to no connection with the sink. */
+    };
+
+    struct ConnectionMetadata
+    {
+        ConnectionMetadata() noexcept = default;
+
+        /** Number of packets to wait before reattempting to establish @ref transport. */
+        std::uint32_t connection_cooloff = 0;
+
+        /** Total number of failed connection attempts since the last @ref reset_statistics call. */
+        std::uint32_t failed_connection_attempts = 0;
+    };
+
+    void run_worker(const std::stop_token& stop_token);
+
+    void attempt_connection();
+
     std::string host;
     std::uint16_t port;
 
-    /** Number of packets to wait before reattempting to establish @ref transport. */
-    std::size_t connection_cooloff = 0;
+    std::atomic<Statistics> statistics;
+    std::atomic<ConnectionMetadata> connection_metadata;
 
-    /** Total number of failed connection attempts since the last @ref reset_statistics call. */
-    std::size_t failed_connection_attempts = 0;
-
-    std::size_t frames_sent = 0;
-    std::size_t frames_dropped = 0;
+    FrameQueue despatch_queue;
+    std::jthread worker;
     std::optional<TCPConnection> transport;
 };
 

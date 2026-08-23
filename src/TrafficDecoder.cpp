@@ -12,6 +12,11 @@
 namespace firestorm
 {
 
+std::shared_lock<std::shared_mutex> TrafficDecoder::lock_buffers()
+{
+    return std::shared_lock{buffer_mutex};
+}
+
 std::uint16_t TrafficDecoder::decode_big_endian(const std::span<const std::byte, 2> bytes) noexcept
 {
     return std::to_integer<std::uint16_t>(bytes[0]) << 8 | std::to_integer<std::uint16_t>(bytes[1]);
@@ -25,8 +30,11 @@ std::uint32_t TrafficDecoder::decode_big_endian(const std::span<const std::byte,
            std::to_integer<std::uint32_t>(bytes[3]);
 }
 
-void TrafficDecoder::compact()
+void TrafficDecoder::try_compact()
 {
+    if (!buffer_mutex.try_lock())
+        return;
+
     if (consumed == buffer.size()) {
         buffer.clear();
         consumed = 0;
@@ -35,6 +43,8 @@ void TrafficDecoder::compact()
         buffer.resize(buffer.size() - consumed);
         consumed = 0;
     }
+
+    buffer_mutex.unlock();
 }
 
 } // namespace firestorm
