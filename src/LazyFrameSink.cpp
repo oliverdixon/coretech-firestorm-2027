@@ -25,20 +25,8 @@ LazyFrameSink::LazyFrameSink(const std::string_view host, const std::uint16_t po
 
 void LazyFrameSink::send(const std::span<const std::byte> frame)
 {
-    if (connection_cooloff == 0 && !transport.has_value())
-        try {
-            transport.emplace(host, port);
-            LOG_F_INFO("Established forwarding TCP connection to {}:{}.", host, port);
-        } catch (const std::exception& error) {
-            connection_cooloff = 1U << failed_connection_attempts; // Exponential back-off.
-            ++failed_connection_attempts;
-            LOG_F_WARNING("Could not establish connection to {}:{} because {}. Will try again in {} packet{}.",
-                          host,
-                          port,
-                          error.what(),
-                          connection_cooloff,
-                          connection_cooloff == 1 ? "" : "s");
-        }
+    if (!transport.has_value())
+        attempt_connection();
 
     if (transport.has_value()) {
         ++frames_sent;
@@ -62,6 +50,29 @@ void LazyFrameSink::reset_statistics() noexcept
     connection_cooloff = 0;
     frames_sent = 0;
     frames_dropped = 0;
+}
+
+void LazyFrameSink::attempt_connection()
+{
+    if (connection_cooloff == 0)
+        try {
+            transport.emplace(host, port);
+            LOG_F_INFO("Established forwarding TCP connection to {}:{}.", host, port);
+        } catch (const std::exception& error) {
+            if (failed_connection_attempts < sizeof(connection_cooloff) * 8)
+                // Exponential back-off.
+                    connection_cooloff = 1U << failed_connection_attempts;
+            ++failed_connection_attempts;
+
+            LOG_F_WARNING("Could not establish connection to {}:{} because {}. Will try again in {} packet{}.",
+                          host,
+                          port,
+                          error.what(),
+                          connection_cooloff,
+                          connection_cooloff == 1 ? "" : "s");
+        }
+    else
+        --connection_cooloff;
 }
 
 } // namespace firestorm

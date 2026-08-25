@@ -72,6 +72,15 @@ public:
     void reset_statistics() noexcept;
 
 private:
+    /**
+     * Attempt to connect to the stored endpoint.
+     *
+     * If connection succeeds, @ref transport will hold the TCPConnection. Otherwise it remains in its state prior to
+     * the call, and a cooling off period is applied. The cooling off period is exponential backoff in the number failed
+     * connection attempts. Attempting a connection during the cooling off period will do nothing.
+     */
+    void attempt_connection();
+
     std::string host;
     std::uint16_t port;
 
