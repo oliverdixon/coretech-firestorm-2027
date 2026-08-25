@@ -66,8 +66,8 @@ void Driver::run()
         packet_group.clear();
     }
 
+    frame_router.finish();
     frame_router.print_summary();
-    frame_router.reset_statistics();
 
     packet_groups.clear();
 }

@@ -13,8 +13,8 @@ add_executable(FireStorm
         src/TrafficDecoder.hpp
         src/Driver.cpp
         src/Driver.hpp
-        src/LazyFrameSink.cpp
-        src/LazyFrameSink.hpp
+        src/AsyncFrameSink.cpp
+        src/AsyncFrameSink.hpp
         src/EthernetFrameView.hpp
         src/FrameRouter.cpp
         src/FrameRouter.hpp

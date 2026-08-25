@@ -12,8 +12,8 @@
 
 #include <algorithm>
 
+#include "AsyncFrameSink.hpp"
 #include "EthernetFrameView.hpp"
-#include "LazyFrameSink.hpp"
 
 namespace firestorm
 {
@@ -32,7 +32,7 @@ namespace firestorm
  *
  * Connections to output endpoints are established lazily by the corresponding LazyFrameSink.
  *
- * @warning This class is not thread-safe.
+ * @todo update documentation for async.
  */
 class FrameRouter
 {
@@ -61,21 +61,17 @@ public:
      * In passthrough mode, forwards @p frame to the primary TCP sink. In classified mode, applies the
      * monitored-destination, malicious-source, and IP-protocol rules described by FrameRouter.
      *
-     * @param frame Decoded non-owning view of the frame to route.
+     * @param view Decoded non-owning view of the frame to route.
      *
      * @note Storage referenced by @p frame must remain valid for the duration of this call.
      */
-    void route(const EthernetFrameView& frame);
+    void route(const EthernetFrameView& view);
+    void finish();
 
     /**
      * Prints cumulative routing and sink statistics.
      */
     void print_summary() const;
-
-    /**
-     * Resets frame counters.
-     */
-    void reset_statistics() noexcept;
 
 private:
     using MACAddressView = std::span<const std::byte, 3>; /**< Non-owning view of a three-byte MAC address prefix. */
@@ -127,9 +123,9 @@ private:
     std::size_t frame_count = 0;
     std::size_t malicious_count = 0;
 
-    LazyFrameSink tcp_sink{endpoint_addr, tcp_port}; /**< Primary sink for passthrough and TCP-classified traffic. */
-    LazyFrameSink monitor_sink{endpoint_addr, monitor_port}; /**< Sink for copies of monitored traffic. */
-    LazyFrameSink udp_sink{endpoint_addr, udp_port};         /**< Sink for copies of UDP-classified traffic. */
+    AsyncFrameSink tcp_sink{endpoint_addr, tcp_port}; /**< Primary sink for passthrough and TCP-classified traffic. */
+    AsyncFrameSink monitor_sink{endpoint_addr, monitor_port}; /**< Sink for copies of monitored traffic. */
+    AsyncFrameSink udp_sink{endpoint_addr, udp_port};         /**< Sink for copies of UDP-classified traffic. */
 };
 
 } // namespace firestorm

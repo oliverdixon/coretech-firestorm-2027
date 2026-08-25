@@ -1,20 +1,25 @@
 /**
  * @file
  *
- * LazyFrameSink specification
+ * AsyncFrameSink specification
  *
  * @author Oliver Dixon
  * @date 2026-08-20
  */
 
-#ifndef FIRESTORM_LAZYFRAMESINK_HPP
-#define FIRESTORM_LAZYFRAMESINK_HPP
+#ifndef FIRESTORM_ASYNCFRAMESINK_HPP
+#define FIRESTORM_ASYNCFRAMESINK_HPP
 
+#include <condition_variable>
 #include <cstdint>
+#include <deque>
+#include <mutex>
 #include <optional>
 #include <span>
 #include <string>
 #include <string_view>
+#include <thread>
+#include <vector>
 
 #include "TCPConnection.hpp"
 
@@ -24,15 +29,17 @@ namespace firestorm
 /**
  * Lazily established destination for forwarded Ethernet frames.
  *
- * LazyFrameSink defers establishing its TCP connection until the first frame is sent. If the destination cannot be
+ * AsyncFrameSink defers establishing its TCP connection until the first frame is sent. If the destination cannot be
  * reached, the connection is retried using an exponential backoff pattern in subsequent packets; i.e., if it fails for
  * the first time, it will try again on the next packet; if it fails of a second, it waits for two packets, then four,
  * then eight, etc.
  *
  * @note Constructing a sink performs no network I/O.
  * @warning This class is not thread-safe.
+ *
+ * @todo Update documentation for async.
  */
-class LazyFrameSink
+class AsyncFrameSink
 {
 public:
     /**
@@ -45,19 +52,17 @@ public:
      *
      * @throws std::bad_alloc Storing @p host fails.
      */
-    LazyFrameSink(std::string_view host, std::uint16_t port);
+    AsyncFrameSink(std::string_view host, std::uint16_t port, std::size_t maximum_buffered_bytes = 8U * 1024U * 1024U);
 
-    /**
-     * Sends an Ethernet frame to the destination.
-     *
-     * On the first call, we attempt to establish a connection to the endpoint. If the destination cannot be reached,
-     * the connection is retried using an exponential backoff pattern in subsequent packets; i.e., if it fails for the
-     * first time, it will try again on the next packet; if it fails of a second, it waits for two packets, then four,
-     * then eight, etc.
-     *
-     * @param frame Complete encoded Ethernet frame to send.
-     */
-    void send(std::span<const std::byte> frame);
+    ~AsyncFrameSink() noexcept;
+
+    void enqueue(std::shared_ptr<const std::vector<std::byte>> frame);
+    void finish();
+
+    AsyncFrameSink(const AsyncFrameSink&) = delete;
+    AsyncFrameSink& operator=(const AsyncFrameSink&) = delete;
+    AsyncFrameSink(AsyncFrameSink&&) = delete;
+    AsyncFrameSink& operator=(AsyncFrameSink&&) = delete;
 
     /**
      * Report the sink's current transmission statistics.
@@ -81,8 +86,12 @@ private:
      */
     void attempt_connection();
 
+    void run_worker() noexcept;
+
     std::string host;
     std::uint16_t port;
+    std::size_t maximum_buffered_bytes;
+    std::size_t buffered_bytes = 0;
 
     /** Number of packets to wait before reattempting to establish @ref transport. */
     std::size_t connection_cooloff = 0;
@@ -90,11 +99,20 @@ private:
     /** Total number of failed connection attempts since the last @ref reset_statistics call. */
     std::size_t failed_connection_attempts = 0;
 
-    std::size_t frames_sent = 0;
-    std::size_t frames_dropped = 0;
+    std::atomic_size_t frames_sent = 0;
+    std::atomic_size_t frames_dropped = 0;
+
+    std::mutex mutex;
+    std::condition_variable frame_available; /**< Indicator for when a frame is available on the queue. */
+    std::condition_variable buffer_available; /**< Indicator for  */
+    std::deque<std::shared_ptr<const std::vector<std::byte>>> frame_queue;
+
+    bool closing = false;
+    std::exception_ptr worker_failure;
     std::optional<TCPConnection> transport;
+    std::jthread worker;
 };
 
 } // namespace firestorm
 
-#endif // FIRESTORM_LAZYFRAMESINK_HPP
+#endif // FIRESTORM_ASYNCFRAMESINK_HPP

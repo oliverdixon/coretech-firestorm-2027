@@ -43,37 +43,60 @@ FrameRouter::FrameRouter(const Policy policy) :
 {
 }
 
-void FrameRouter::route(const EthernetFrameView& frame)
+void FrameRouter::route(const EthernetFrameView& view)
 {
     ++frame_count;
 
-    if (policy == Policy::Classified) {
-        const auto monitored = has_monitored_destination(frame.dst_mac_prefix);
-        const auto malicious = has_malicious_source(frame.src_mac_prefix);
+    const auto monitored = has_monitored_destination(view.dst_mac_prefix);
+    const auto malicious = has_malicious_source(view.src_mac_prefix);
 
-        if (monitored)
-            monitor_sink.send(frame.bytes);
+    AsyncFrameSink * ordinary = nullptr;
 
-        if (malicious) {
-            // Drop malicious packets following monitoring.
-            if (!monitored)
-                ++malicious_count;
-            return;
-        }
-
-        switch (frame.ip_protocol) {
+    if (policy == Policy::Passthrough)
+        ordinary = &tcp_sink;
+    else if (!malicious)
+        switch (view.ip_protocol) {
         case IPPROTO_TCP:
-            tcp_sink.send(frame.bytes);
+            ordinary = &tcp_sink;
             break;
-
         case IPPROTO_UDP:
-            udp_sink.send(frame.bytes);
+            ordinary = &udp_sink;
             break;
-
-        default: ; // Unsupported protocol.
+        default: ;
         }
-    } else
-        tcp_sink.send(frame.bytes);
+    else
+        ++malicious_count;
+
+    if (!monitored && ordinary == nullptr)
+        return;
+
+    auto frame = std::make_shared<const std::vector<std::byte>>(view.bytes.begin(), view.bytes.end());
+    if (monitored)
+        monitor_sink.enqueue(frame);
+
+    if (ordinary)
+        ordinary->enqueue(std::move(frame));
+}
+
+void FrameRouter::finish()
+{
+    std::exception_ptr first_failure;
+
+    auto finish_sink = [&first_failure](AsyncFrameSink& sink) {
+        try {
+            sink.finish();
+        } catch (...) {
+            if (!first_failure)
+                first_failure = std::current_exception();
+        }
+    };
+
+    finish_sink(tcp_sink);
+    finish_sink(monitor_sink);
+    finish_sink(udp_sink);
+
+    if (first_failure)
+        std::rethrow_exception(first_failure);
 }
 
 void FrameRouter::print_summary() const
@@ -91,16 +114,6 @@ void FrameRouter::print_summary() const
         monitor_sink.print_summary();
         udp_sink.print_summary();
     }
-}
-
-void FrameRouter::reset_statistics() noexcept
-{
-    frame_count = 0;
-    malicious_count = 0;
-
-    tcp_sink.reset_statistics();
-    monitor_sink.reset_statistics();
-    udp_sink.reset_statistics();
 }
 
 } // namespace firestorm
