@@ -11,7 +11,6 @@
 #define FIRESTORM_FRAMEROUTER_HPP
 
 #include <algorithm>
-#include <shared_mutex>
 
 #include "EthernetFrameView.hpp"
 #include "LazyFrameSink.hpp"
@@ -63,11 +62,10 @@ public:
      * monitored-destination, malicious-source, and IP-protocol rules described by FrameRouter.
      *
      * @param frame Decoded non-owning view of the frame to route.
-     * @param frame_lock
      *
      * @note Storage referenced by @p frame must remain valid for the duration of this call.
      */
-    void route(const EthernetFrameView& frame, std::scoped_lock<std::shared_mutex>&& frame_lock);
+    void route(const EthernetFrameView& frame);
 
     /**
      * Prints cumulative routing and sink statistics.

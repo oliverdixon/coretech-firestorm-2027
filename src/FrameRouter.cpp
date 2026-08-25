@@ -43,7 +43,7 @@ FrameRouter::FrameRouter(const Policy policy) :
 {
 }
 
-void FrameRouter::route(const EthernetFrameView& frame, std::scoped_lock<std::shared_mutex>&& frame_lock)
+void FrameRouter::route(const EthernetFrameView& frame)
 {
     ++frame_count;
 
@@ -52,7 +52,7 @@ void FrameRouter::route(const EthernetFrameView& frame, std::scoped_lock<std::sh
         const auto malicious = has_malicious_source(frame.src_mac_prefix);
 
         if (monitored)
-            monitor_sink.send(frame);
+            monitor_sink.send(frame.bytes);
 
         if (malicious) {
             // Drop malicious packets following monitoring.
@@ -63,17 +63,17 @@ void FrameRouter::route(const EthernetFrameView& frame, std::scoped_lock<std::sh
 
         switch (frame.ip_protocol) {
         case IPPROTO_TCP:
-            tcp_sink.send(frame);
+            tcp_sink.send(frame.bytes);
             break;
 
         case IPPROTO_UDP:
-            udp_sink.send(frame);
+            udp_sink.send(frame.bytes);
             break;
 
         default: ; // Unsupported protocol.
         }
     } else
-        tcp_sink.send(frame);
+        tcp_sink.send(frame.bytes);
 }
 
 void FrameRouter::print_summary() const

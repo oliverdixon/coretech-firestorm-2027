@@ -98,7 +98,6 @@ private:
 
     /** Unordered sets of packets, grouped by file ID. */
     std::vector<std::vector<CTFSPacket>> packet_groups;
-    TrafficDecoder decoder;
 };
 
 } // namespace firestorm

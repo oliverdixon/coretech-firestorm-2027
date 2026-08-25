@@ -12,7 +12,6 @@
 
 #include <algorithm>
 #include <functional>
-#include <shared_mutex>
 #include <stdexcept>
 #include <variant>
 
@@ -79,8 +78,6 @@ public:
      * @post On success, the filter contains no buffered input and may be reused for another stream.
      */
     void finish(TrafficDecoderCallback auto&& callback);
-
-    std::shared_lock<std::shared_mutex> lock_buffers();
 
 private:
     /**
@@ -157,11 +154,10 @@ private:
      *
      * @throws std::bad_alloc Reorganising the buffer requires an allocation that fails.
      */
-    void try_compact();
+    void compact();
 
     std::vector<std::byte> buffer;
     std::size_t consumed = 0;
-    std::shared_mutex buffer_mutex;
 };
 
 void TrafficDecoder::consume(const std::span<const std::byte> input, TrafficDecoderCallback auto&& callback)
@@ -174,25 +170,25 @@ void TrafficDecoder::consume(const std::span<const std::byte> input, TrafficDeco
 
         if (available.size() < magic.size()) {
             // Four bytes are required to distinguish a CTFS record from an ethernet frame.
-            try_compact();
+            compact();
             return;
         }
 
         // Send to suitable handler if CTFS record, or ethernet frame.
         if (std::ranges::equal(available.first(magic.size()), magic)) {
             if (!consume_ctfs_record(available, callback)) {
-                try_compact();
+                compact();
                 return;
             }
         } else {
             if (!consume_ethernet_frame(available, callback)) {
-                try_compact();
+                compact();
                 return;
             }
         }
     }
 
-    try_compact();
+    compact();
 }
 
 void TrafficDecoder::finish(TrafficDecoderCallback auto&& callback)

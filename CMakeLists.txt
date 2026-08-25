@@ -24,7 +24,6 @@ add_executable(FireStorm
         src/Logger.hpp
         src/PDFWriter.hpp
         src/PDFWriter.cpp
-        src/ThreadSafeQueue.hpp
 )
 
 target_compile_options(FireStorm PRIVATE
