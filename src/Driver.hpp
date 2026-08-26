@@ -10,12 +10,14 @@
 #ifndef FIRESTORM_DRIVER_HPP
 #define FIRESTORM_DRIVER_HPP
 
-#include "AsyncFrameRouter.hpp"
-#include "CTFSPacket.hpp"
+#include <memory>
+
 #include "TrafficDecoder.hpp"
 
 namespace firestorm
 {
+
+class IFrameRouter;
 
 /**
  * Coordinates CTFS packet extraction, non-operational data forwarding, and PDF reconstruction.
@@ -33,10 +35,12 @@ public:
      * Driver owns FrameRouter, which binds to sockets on fixed endpoints. Therefore, only one driver must exist at one
      * time. Note that sockets are bound lazily, so violations are not immediately apparent.
      *
-     * @param routing_policy The routing policy for FrameRouter.
+     * @param classified_policy Should the AsyncFrameRouter use a classified routing policy?
      * @param drop_bad_checksums Should invalid checksums be ignored?
      */
-    explicit Driver(AsyncFrameRouter::Policy routing_policy, bool drop_bad_checksums);
+    explicit Driver(bool classified_policy, bool drop_bad_checksums);
+
+    ~Driver() noexcept;
 
     /**
      * Processes the incoming stream and reconstructs the captured PDF.
@@ -93,11 +97,9 @@ private:
      */
     void process_record(const EthernetFrameView& ethernet_frame_view);
 
-    bool drop_bad_checksums;  /**< Should invalid checksums be ignored? */
-    AsyncFrameRouter frame_router; /**< Routing delegate for forwarding frame packets. */
-
-    /** Unordered sets of packets, grouped by file ID. */
-    std::vector<std::vector<CTFSPacket>> packet_groups;
+    bool drop_bad_checksums;                            /**< Should invalid checksums be ignored? */
+    std::unique_ptr<IFrameRouter> frame_router{};       /**< Routing delegate for forwarding frame packets. */
+    std::vector<std::vector<CTFSPacket>> packet_groups; /**< Unordered sets of packets, grouped by file ID. */
 };
 
 } // namespace firestorm

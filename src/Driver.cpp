@@ -15,18 +15,25 @@
 #include <ranges>
 
 #include "CTFSPacket.hpp"
+#include "ClassifiedAsyncFrameRouter.hpp"
 #include "Logger.hpp"
 #include "PDFWriter.hpp"
+#include "PassthroughAsyncFrameRouter.hpp"
 #include "TrafficDecoder.hpp"
 
 namespace firestorm
 {
 
-Driver::Driver(const AsyncFrameRouter::Policy routing_policy, const bool drop_bad_checksums) :
-    drop_bad_checksums(drop_bad_checksums),
-    frame_router(routing_policy)
+Driver::Driver(const bool classified_policy, const bool drop_bad_checksums) :
+    drop_bad_checksums(drop_bad_checksums)
 {
+    if (classified_policy)
+        frame_router = std::make_unique<ClassifiedAsyncFrameRouter>();
+    else
+        frame_router = std::make_unique<PassthroughAsyncFrameRouter>();
 }
+
+Driver::~Driver() noexcept = default;
 
 void Driver::run()
 {
@@ -66,7 +73,7 @@ void Driver::run()
         packet_group.clear();
     }
 
-    frame_router.drain_and_report();
+    frame_router->drain_and_report();
     packet_groups.clear();
 }
 
@@ -113,9 +120,10 @@ void Driver::process_record(const CTFSPacketView& ctfs_packet_view)
     }
 }
 
+// ReSharper disable once CppMemberFunctionMayBeConst
 void Driver::process_record(const EthernetFrameView& ethernet_frame_view)
 {
-    frame_router.route(ethernet_frame_view);
+    frame_router->route(ethernet_frame_view);
 }
 
 } // namespace firestorm
@@ -146,7 +154,7 @@ int main(const int argc, const char* const* const argv)
     struct Options
     {
         bool drop_bad_checksums = false;
-        AsyncFrameRouter::Policy policy = AsyncFrameRouter::Policy::Passthrough;
+        bool classified = false;
     } options;
 
     const auto args =
@@ -158,12 +166,12 @@ int main(const int argc, const char* const* const argv)
         if (arg == "--drop-bad-checksums")
             options.drop_bad_checksums = true;
         else if (arg == "--classified")
-            options.policy = AsyncFrameRouter::Policy::Classified;
+            options.classified = true;
 
     // Run the driver and report fatal errors.
 
     try {
-        Driver driver(options.policy, options.drop_bad_checksums);
+        Driver driver(options.classified, options.drop_bad_checksums);
         driver.run();
         return 0;
     } catch (const std::exception& error) {

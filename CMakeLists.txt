@@ -16,14 +16,17 @@ add_executable(FireStorm
         src/AsyncFrameSink.cpp
         src/AsyncFrameSink.hpp
         src/EthernetFrameView.hpp
-        src/AsyncFrameRouter.cpp
-        src/AsyncFrameRouter.hpp
+        src/PassthroughAsyncFrameRouter.cpp
+        src/PassthroughAsyncFrameRouter.hpp
         src/CTFSRecordView.hpp
         src/CTFSRecordView.cpp
         src/Logger.cpp
         src/Logger.hpp
         src/PDFWriter.hpp
         src/PDFWriter.cpp
+        src/ClassifiedAsyncFrameRouter.cpp
+        src/ClassifiedAsyncFrameRouter.hpp
+        src/IFrameRouter.hpp
 )
 
 target_compile_options(FireStorm PRIVATE
