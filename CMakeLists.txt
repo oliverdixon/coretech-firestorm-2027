@@ -65,9 +65,9 @@ if (FIRESTORM_BUILD_APPLICATION)
     target_link_libraries(FireStorm PRIVATE FireStormCore ProjectFlags)
 endif ()
 
-if (FIRESTORM_BUILD_TESTING)
-    include(CTest)
+include(CTest)
 
+if (FIRESTORM_BUILD_TESTING)
     add_library(FireStormTestCore
             src/tests/TestHarness.hpp
             src/tests/TestHarness.cpp
