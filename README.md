@@ -79,6 +79,8 @@ Prior to the submission deadline, viewing the documentation requires HTTPS authe
 
 ## Execution
 
+### Running the Standalone Application
+
 To run _FIRE STORM_ interactively, locate the `FireStorm` executable in the build directory: either
 `cmake-build-debug-app` or `cmake-build-release-app`, relative to the location of `CMakeLists.txt`.
 
@@ -86,10 +88,7 @@ In the following examples, the provided test suites (Stage 1 and Stage 2) have b
 `../stage2` respectively. After each invocation, a set of PDF documents will be produced in the current working
 directory.
 
-Alternatively, if the test suite was built as in [_Building the Test Suite_](#building-the-test-suite), all unit tests
-can be run automatically by invoking the `FireStormTests` executable with no parameters from the CMake build directory.
-
-### Stage 1 Invocation
+#### Stage 1 Invocation
 
 To run _FIRE STORM_ in the Stage 1 configuration, in which all non-operational data is forwarded to the endpoint at
 127.0.0.1:5744, execute the binary without any command-line parameters. The program will hang until data is received on
@@ -110,7 +109,7 @@ Ran 1 test in 6.003s
 OK
 ```
 
-### Stage 2 Invocation
+#### Stage 2 Invocation
 
 To run _FIRE STORM_ in the Stage 2 configuration, in which non-operational data is routed to local endpoints on ports
 5744, 5745, and 5746 according to a fixed policy, execute the binary with the `--classified` command-line parameter. The
@@ -140,6 +139,15 @@ Running test...
 Ran 1 test in 6.039s
 
 OK
+```
+
+### Running the Unit and Integration Tests
+
+Alternatively, if the test suite was built as in [_Building the Test Suite_](#building-the-test-suite), unit and
+integration tests can be run with CTest:
+
+```
+$ ctest --test-dir cmake-build-debug-tests --output-on-failure
 ```
 
 ### Checksum Errors

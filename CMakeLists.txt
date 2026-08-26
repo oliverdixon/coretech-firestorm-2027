@@ -7,29 +7,33 @@ option(FIRESTORM_BUILD_TESTING "Build the FIRE STORM tests" OFF)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# TODO add compiler options
-# -Wall
-# -Wextra
-# -Wpedantic
-# $<$<CONFIG:Release>:
-# -O3
-# -DNDEBUG
-# -fvisibility=hidden
-# -fvisibility-inlines-hidden
-# -fstack-protector-strong
-# -ffunction-sections
-# -fdata-sections
-# >
+add_library(ProjectFlags INTERFACE)
 
-# TODO add linker options
-# $<$<CONFIG:Release>:
-# -Wl,--gc-sections
-# -Wl,-z,relro
-# -Wl,-z,now
-# -Wl,-z,noexecstack
-# -pie
-# -s
-# >
+target_compile_options(ProjectFlags INTERFACE
+        -Wall
+        -Wextra
+        -Wpedantic
+        $<$<CONFIG:Release>:
+        -O3
+        -DNDEBUG
+        -fvisibility=hidden
+        -fvisibility-inlines-hidden
+        -fstack-protector-strong
+        -ffunction-sections
+        -fdata-sections
+        >
+)
+
+target_link_options(ProjectFlags INTERFACE
+        $<$<CONFIG:Release>:
+        -Wl,--gc-sections
+        -Wl,-z,relro
+        -Wl,-z,now
+        -Wl,-z,noexecstack
+        -pie
+        -s
+        >
+)
 
 add_library(FireStormCore
         src/TCPConnection.cpp
@@ -58,11 +62,35 @@ add_library(FireStormCore
 
 if (FIRESTORM_BUILD_APPLICATION)
     add_executable(FireStorm src/app/FireStorm.cpp)
-    target_link_libraries(FireStorm PRIVATE FireStormCore)
+    target_link_libraries(FireStorm PRIVATE FireStormCore ProjectFlags)
 endif ()
 
 if (FIRESTORM_BUILD_TESTING)
     include(CTest)
-    add_executable(FireStormTests src/app/FireStorm.cpp) # TODO
-    target_link_libraries(FireStormTests PRIVATE FireStormCore)
+
+    add_library(FireStormTestCore
+            src/tests/TestHarness.hpp
+            src/tests/TestHarness.cpp
+    )
+
+    target_link_libraries(FireStormTestCore PRIVATE FireStormCore ProjectFlags)
+
+    set(UNIT_TEST_EXECUTABLES Decoder)
+
+    foreach (TEST_EXE IN LISTS UNIT_TEST_EXECUTABLES)
+        set(TEST_EXE_NAME "Test${TEST_EXE}")
+        add_executable(${TEST_EXE_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/src/tests/unit/${TEST_EXE_NAME}.cpp")
+        target_link_libraries(${TEST_EXE_NAME} PRIVATE FireStormTestCore)
+
+        add_test(
+                NAME ${TEST_EXE}
+                COMMAND ${TEST_EXE_NAME}
+        )
+
+        set_tests_properties(
+                ${TEST_EXE}
+                PROPERTIES
+                TIMEOUT 5
+        )
+    endforeach ()
 endif ()
