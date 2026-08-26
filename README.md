@@ -36,6 +36,7 @@ Building the software requires the following components:
 * CMake 3.28 or greater;
 * A CMake-compatible build system: `make` or (preferably) Ninja.
 * Optionally, Doxygen to generate HTML documentation from inline source comments.
+* Optionally, a Python3 interpreter to run the CoreTech integration tests.
 
 These are available from `apt` on the Ubuntu 24.04 LTS baseline.
 

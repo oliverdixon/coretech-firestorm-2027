@@ -61,28 +61,25 @@ private:
      *
      * Despatches @p record_view to the overload appropriate for the contained record type.
      *
-     * @param record_view A decoded non-owning view of the traffic record to process.
+     * @param record A decoded non-owning view of the traffic record to process.
      *
      * @throws std::system_error Forwarding or storing the record fails.
      * @throws std::bad_alloc Processing requires an allocation that fails.
      *
      * @note Any storage referenced by @p record_view must remain valid for the entire duration of this call.
      */
-    void process_record_view(const TrafficRecordView& record_view);
+    void despatch_record(TrafficRecord&& record);
 
     /**
-     * Processes a decoded CTFS packet.
+     * Adds a CTFSPacket to its file packet group.
      *
-     * Validates the packet checksum and, if valid, adds the packet to the corresponding file reconstruction. Invalid or
-     * duplicated packets are discarded.
+     * If the packet describes a portion of a file that doesn't exist, the group is created to accommodate.
      *
-     * @param ctfs_packet_view A decoded non-owning view of the CTFS packet.
+     * @param ctfs_packet A constructed checksum-validated CTFSPacket.
      *
      * @throws std::bad_alloc Storing the CTFSPacket requires an allocation that fails.
-     *
-     * @note Any storage referenced by @p ctfs_packet_view must remain valid for the entire duration of this call.
      */
-    void process_record(const CTFSPacketView& ctfs_packet_view);
+    void process_record(CTFSPacket&& ctfs_packet);
 
     /**
      * Processes a decoded Ethernet frame.

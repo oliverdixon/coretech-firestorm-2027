@@ -18,28 +18,29 @@
 #include "CTFSPacket.hpp"
 #include "CTFSRecordView.hpp"
 #include "EthernetFrameView.hpp"
+#include "Logger.hpp"
 
 namespace firestorm
 {
 
 /**
- * A non-owning decoded view of operational or non-operational data.
+ * A packet of operational or non-operational data.
  */
-using TrafficRecordView = std::variant<CTFSPacketView, EthernetFrameView>;
+using TrafficRecord = std::variant<CTFSPacket, EthernetFrameView>;
 
 /**
- * Concept for callbacks that consume TrafficRecordView results.
+ * Concept for callbacks that consume TrafficRecord results.
  *
- * @tparam F Callable type accepting TrafficRecordView.
+ * @tparam F Callable type accepting TrafficRecord.
  */
 template <typename F>
-concept TrafficDecoderCallback = std::invocable<F&, const TrafficRecordView&>;
+concept TrafficDecoderCallback = std::invocable<F&, TrafficRecord&&>;
 
 /**
  * Incrementally decodes typed traffic records from a byte stream.
  *
  * TrafficDecoder accepts arbitrary chunks of bytes that needn't align with record boundaries. It buffers incomplete
- * input and reports each complete record to a TrafficDecoderCallback as a TrafficRecordView.
+ * input and reports each complete record to a TrafficDecoderCallback as a TrafficRecord.
  *
  * The input stream may contain encoded variants of the following record types:
  *  - CTFS packets, identified by a leader @c CTFS magic value; or
@@ -58,11 +59,17 @@ concept TrafficDecoderCallback = std::invocable<F&, const TrafficRecordView&>;
 class TrafficDecoder
 {
 public:
+    TrafficDecoder() = default;
+    explicit TrafficDecoder(bool reject_bad_checksums);
+
     /**
      * Processes a chunk of input bytes.
      *
      * @param input Chunk of bytes from the input stream.
      * @param callback Callback invoked synchronously for ordinary bytes.
+     *
+     * @throws std::runtime_error The CTFS packet encoded a bad checksum, and the TrafficDecoder is configured to
+     * explicitly reject malformed checksums.
      */
     void consume(std::span<const std::byte> input, TrafficDecoderCallback auto&& callback);
 
@@ -116,8 +123,8 @@ private:
      *
      * @return True if a complete CTFS packet was consumed; false otherwise.
      *
-     * @note The CTFSPacketView supplied to @p callback refers to decoder-owned storage and remains valid only for the
-     * duration of the callback invocation.
+     * @throws std::runtime_error The CTFS packet encoded a bad checksum, and the TrafficDecoder is configured to
+     * explicitly reject malformed checksums.
      */
     bool consume_ctfs_record(std::span<const std::byte> available, TrafficDecoderCallback auto&& callback);
 
@@ -154,6 +161,7 @@ private:
 
     std::vector<std::byte> buffer;
     std::size_t consumed = 0;
+    bool reject_bad_checksums = false;
 };
 
 void TrafficDecoder::consume(const std::span<const std::byte> input, TrafficDecoderCallback auto&& callback)
@@ -172,9 +180,14 @@ void TrafficDecoder::consume(const std::span<const std::byte> input, TrafficDeco
 
         // Send to suitable handler if CTFS record, or ethernet frame.
         if (std::ranges::equal(available.first(magic.size()), magic)) {
-            if (!consume_ctfs_record(available, callback)) {
+            try {
+                if (!consume_ctfs_record(available, callback)) {
+                    compact();
+                    return;
+                }
+            } catch (...) {
                 compact();
-                return;
+                throw;
             }
         } else {
             if (!consume_ethernet_frame(available, callback)) {
@@ -202,6 +215,7 @@ bool TrafficDecoder::consume_ctfs_record(const std::span<const std::byte> availa
     if (available.size() < record_size)
         return false;
 
+    // Cheaply create a non-owning view of the bytes so we don't have to repeatedly decode.
     const auto record_bytes = available.first(record_size);
     const CTFSPacketView packet_view{
         .bytes = record_bytes,
@@ -213,7 +227,29 @@ bool TrafficDecoder::consume_ctfs_record(const std::span<const std::byte> availa
         .received_checksum = decode_big_endian(record_bytes.subspan<9, 4>())
     };
 
-    std::invoke(callback, packet_view);
+    // Verify the checksum against the configured bad-checksum behaviour.
+    const auto expected_cs = packet_view.compute_checksum();
+
+    if (expected_cs != packet_view.received_checksum) {
+        if (reject_bad_checksums) {
+            consumed += record_size;
+            throw std::runtime_error(
+                std::format("Refused CTFS packet (F#{}, S#{}) due to invalid checksum: expected {:#X}, got {:#X}.",
+                            packet_view.file_id,
+                            packet_view.sequence_number,
+                            expected_cs,
+                            packet_view.received_checksum));
+        }
+
+        LOG_F_WARNING("Found CTFS packet (F#{}, S#{}) with bad checksum: expected {:#X}, got {:#X}.",
+                      packet_view.file_id,
+                      packet_view.sequence_number,
+                      expected_cs,
+                      packet_view.received_checksum);
+    }
+
+    // If the packet is admissible, copy its data into an owning CTFSPacket and provide to the callback.
+    std::invoke(callback, packet_view.make_packet());
     consumed += record_size;
     return true;
 }

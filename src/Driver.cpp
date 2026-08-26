@@ -21,6 +21,16 @@
 #include "PassthroughAsyncFrameRouter.hpp"
 #include "TrafficDecoder.hpp"
 
+namespace
+{
+
+template <class... Ts> struct overloads : Ts...
+{
+    using Ts::operator()...;
+};
+
+} // namespace
+
 namespace firestorm
 {
 
@@ -40,10 +50,10 @@ void Driver::run()
     static constexpr std::uint16_t incoming_port = 5733;
 
     std::array<std::byte, 64 * 1024> storage{};
-    TrafficDecoder decoder;
+    TrafficDecoder decoder(drop_bad_checksums);
 
     TCPConnection source{incoming_port};
-    const auto callback = std::bind_front(&Driver::process_record_view, this);
+    const auto callback = std::bind_front(&Driver::despatch_record, this);
 
     for (std::span<const std::byte> bytes = source.read(storage); !bytes.empty(); bytes = source.read(storage))
         decoder.consume(bytes, callback);
@@ -77,47 +87,25 @@ void Driver::run()
     packet_groups.clear();
 }
 
-void Driver::process_record_view(const TrafficRecordView& record_view)
+void Driver::despatch_record(TrafficRecord&& record)
 {
     std::visit(
-        [this](const auto& decoded) {
-            process_record(decoded);
+        [this]<typename RecordT>(RecordT&& decoded) {
+            process_record(std::forward<RecordT>(decoded));
         },
-        record_view);
+        std::move(record));
 }
 
-void Driver::process_record(const CTFSPacketView& ctfs_packet_view)
+void Driver::process_record(CTFSPacket&& ctfs_packet)
 {
-    const auto expected_cs = ctfs_packet_view.compute_checksum();
-    bool should_add = false;
+    const auto file_id = ctfs_packet.get_file_id();
 
-    if (expected_cs == ctfs_packet_view.received_checksum)
-        should_add = true;
-    else {
-        if (drop_bad_checksums)
-            LOG_F_WARNING("Dropping CTFS packet (F#{}, S#{}) due to invalid checksum: expected {:#X}, got {:#X}.",
-                          ctfs_packet_view.file_id,
-                          ctfs_packet_view.sequence_number,
-                          expected_cs,
-                          ctfs_packet_view.received_checksum);
-        else {
-            LOG_F_WARNING("Found CTFS packet (F#{}, S#{}) with bad checksum: expected {:#X}, got {:#X}.",
-                          ctfs_packet_view.file_id,
-                          ctfs_packet_view.sequence_number,
-                          expected_cs,
-                          ctfs_packet_view.received_checksum);
-            should_add = true;
-        }
-    }
+    // Resize the groups to store the new packet slot vector.
+    if (packet_groups.size() < file_id + 1)
+        packet_groups.resize(file_id + 1);
 
-    if (should_add) {
-        // Resize the groups to store the new packet slot vector.
-        if (packet_groups.size() < ctfs_packet_view.file_id + 1)
-            packet_groups.resize(ctfs_packet_view.file_id + 1);
-
-        // Construct the packet and insert into the file's packet group.
-        packet_groups[ctfs_packet_view.file_id].emplace_back(ctfs_packet_view.make_packet());
-    }
+    // Move the packet into the file's packet group.
+    packet_groups[file_id].emplace_back(std::move(ctfs_packet));
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst

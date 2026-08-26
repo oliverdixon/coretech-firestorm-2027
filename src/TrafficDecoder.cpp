@@ -12,6 +12,11 @@
 namespace firestorm
 {
 
+TrafficDecoder::TrafficDecoder(const bool reject_bad_checksums) :
+    reject_bad_checksums(reject_bad_checksums)
+{
+}
+
 void TrafficDecoder::finish()
 {
     const auto remaining = std::span<const std::byte>{buffer}.subspan(consumed);
