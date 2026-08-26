@@ -23,7 +23,9 @@ requirements were considered. These are discussed under [_Performance Considerat
 and [_Hardening Considerations_](#hardening-considerations).
 
 Correctness can be verified with the supplied Python scripts and a range of additional unit tests. Preparation and use
-of the application and test suites are discussed under [_Building_](#building) and [_Execution_](#execution).
+of the application and test suites are discussed under [_Building_](#building) and [_Execution_](#execution). In
+addition to local testing, GitHub Actions is used to provide a CI pipeline; previous runs can be found
+at https://github.com/oliverdixon/coretech-firestorm-2027/actions/workflows/buildtest.yml.
 
 ## Building
 

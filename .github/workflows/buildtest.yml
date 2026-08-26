@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - unit-testing
+    paths:
+      - 'src/**'
+      - '.github/**'
+      - 'CMakeLists.txt'
+      - 'CMakePresets.json'
 
 concurrency:
   group: deploy-firestorm
