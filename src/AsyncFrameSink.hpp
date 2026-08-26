@@ -52,7 +52,8 @@ public:
     /**
      * Creates a frame sink for a remote TCP endpoint.
      *
-     * The endpoint is stored for later use; the connection is not established until the first call to @ref send.
+     * The endpoint is stored for later use; the connection is not established until the first frame is despatched to
+     * the endpoint (in this sense, it is lazily established).
      *
      * @param host Hostname or network address of the destination.
      * @param port TCP port of the destination.

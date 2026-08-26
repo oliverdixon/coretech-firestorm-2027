@@ -19,8 +19,6 @@ namespace firestorm
 
 void ClassifiedAsyncFrameRouter::route(const EthernetFrameView& view)
 {
-    ++frame_count;
-
     const auto monitored = has_monitored_destination(view.dst_mac_prefix);
     const auto malicious = has_malicious_source(view.src_mac_prefix);
 
@@ -51,6 +49,8 @@ void ClassifiedAsyncFrameRouter::route(const EthernetFrameView& view)
 
     if (primary_sink)
         primary_sink->enqueue(std::move(frame));
+
+    ++frame_count;
 }
 
 void ClassifiedAsyncFrameRouter::drain_and_report()

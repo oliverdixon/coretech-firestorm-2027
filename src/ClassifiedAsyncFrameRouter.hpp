@@ -21,12 +21,49 @@ namespace firestorm
 {
 
 /**
- * @todo Document
+ * Asynchronously classifies and routes Ethernet frames.
+ *
+ * This class implements the FIRE STORM classified routing policy:
+ *
+ *  - A frame addressed to a monitored MAC prefix is sent to the monitoring endpoint at @c 127.0.0.1:5745.
+ *  - A non-malicious TCP frame is sent to the TCP endpoint at @c 127.0.0.1:5744.
+ *  - A non-malicious UDP frame is sent to the TCP endpoint at @c 127.0.0.1:5746.
+ *  - A frame with neither a monitoring route nor a primary protocol route is discarded.
+ *
+ * Monitoring is independent of primary routing. A monitored frame from a malicious source is still sent to the
+ * monitoring endpoint, while a monitored non-malicious TCP or UDP is sent to both applicable endpoints.
+ *
+ * Frames selected for delivery are copied into owned immutable storage. When two endpoints require the same frame,
+ * their sinks share ownership of a single copy. Each AsyncFrameSink performs network delivery independently on its own
+ * thread.
+ *
+ * Call @ref drain_and_report after submitting the final frame to wait for all three sinks, report per-endpoint
+ * statistics, and propagate the first asynchronous worker failure. Every sink is given an opportunity to drain.
  */
-class ClassifiedAsyncFrameRouter : public IFrameRouter
+class ClassifiedAsyncFrameRouter final : public IFrameRouter
 {
 public:
+    /**
+     * Classifies an Ethernet frame and queues it for its applicable destinations.
+     *
+     * The @p view payload is copied only if at least one routing rule selects a destination. Where two destinations are
+     * selected, both sinks share ownership of the same immutable copy.
+     *
+     * @param view Non-owning view of the decoded Ethernet frame.
+     *
+     * @throws std::bad_alloc The frame could not be copied or queued.
+     * @throws std::exception A sink rejected the frame or reported an asynchronous worker failure.
+     */
     void route(const EthernetFrameView& view) override;
+
+    /**
+     * Waits for every sink and reports routing statistics.
+     *
+     * All sinks are drained even if one reports an error. After draining, the first captured error is rethrown. Routing
+     * counters are reset only when every sink drains successfully.
+     *
+     * @throws std::exception One or more sinks reported an asynchronous worker failure.
+     */
     void drain_and_report() override;
 
 private:

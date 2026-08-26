@@ -30,10 +30,10 @@ class Driver
 {
 public:
     /**
-     * Creates a new Driver under the given FrameRouter::Policy.
+     * Creates a new Driver.
      *
-     * Driver owns FrameRouter, which binds to sockets on fixed endpoints. Therefore, only one driver must exist at one
-     * time. Note that sockets are bound lazily, so violations are not immediately apparent.
+     * Driver owns AsyncFrameRouter, which binds to sockets on fixed endpoints. Therefore, only one driver must exist at
+     * one time. Note that sockets are bound lazily, so violations are not immediately apparent.
      *
      * @param classified_policy Should the AsyncFrameRouter use a classified routing policy?
      * @param drop_bad_checksums Should invalid checksums be ignored?

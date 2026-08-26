@@ -17,8 +17,8 @@ namespace firestorm
 
 void PassthroughAsyncFrameRouter::route(const EthernetFrameView& view)
 {
-    ++frame_count;
     tcp_sink.enqueue(std::make_shared<const std::vector<std::byte>>(view.bytes.begin(), view.bytes.end()));
+    ++frame_count;
 }
 
 void PassthroughAsyncFrameRouter::drain_and_report()
@@ -28,7 +28,6 @@ void PassthroughAsyncFrameRouter::drain_and_report()
     LOG_F_INFO("To the endpoint {}, {} frames were sent, and {} were dropped.", tcp_sink.endpoint(), sent, dropped);
 
     frame_count = 0;
-    malicious_count = 0;
 }
 
 } // namespace firestorm
