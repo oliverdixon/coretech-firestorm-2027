@@ -2,13 +2,6 @@
   "version": 6,
   "configurePresets": [
     {
-      "name": "app",
-      "hidden": true,
-      "cacheVariables": {
-        "FIRESTORM_BUILD_APPLICATION": true
-      }
-    },
-    {
       "name": "tests",
       "hidden": true,
       "cacheVariables": {
@@ -31,18 +24,12 @@
     },
     {
       "name": "debug-app",
-      "inherits": [
-        "debug",
-        "app"
-      ],
+      "inherits": "debug",
       "binaryDir": "${sourceDir}/cmake-build-debug-app"
     },
     {
       "name": "release-app",
-      "inherits": [
-        "release",
-        "app"
-      ],
+      "inherits": "release",
       "binaryDir": "${sourceDir}/cmake-build-release-app"
     },
     {

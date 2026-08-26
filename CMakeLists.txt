@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 project(FireStorm)
 
-option(FIRESTORM_BUILD_APPLICATION "Build the FIRE STORM application" OFF)
 option(FIRESTORM_BUILD_TESTING "Build the FIRE STORM tests" OFF)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -60,14 +59,14 @@ add_library(FireStormCore
         src/IFrameRouter.hpp
 )
 
-if (FIRESTORM_BUILD_APPLICATION)
-    add_executable(FireStorm src/app/FireStorm.cpp)
-    target_link_libraries(FireStorm PRIVATE FireStormCore ProjectFlags)
-endif ()
+add_executable(FireStorm src/app/FireStorm.cpp)
+target_link_libraries(FireStorm PRIVATE FireStormCore ProjectFlags)
 
 include(CTest)
 
 if (FIRESTORM_BUILD_TESTING)
+    # Configure unit tests.
+
     add_library(FireStormTestCore
             src/tests/TestHarness.hpp
             src/tests/TestHarness.cpp
@@ -93,4 +92,53 @@ if (FIRESTORM_BUILD_TESTING)
                 TIMEOUT 5
         )
     endforeach ()
+
+    # Configure CoreTech integration tests.
+
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
+    function(add_integration_test)
+        set(options)
+        set(one_value_args NAME SCRIPT)
+        set(multi_value_args ARGS)
+
+        cmake_parse_arguments(
+                TEST
+                "${options}"
+                "${one_value_args}"
+                "${multi_value_args}"
+                ${ARGN}
+        )
+
+        add_test(
+                NAME "${TEST_NAME}Integration"
+                COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/coretech/run_integration.py"
+                "--streamer"
+                "${TEST_SCRIPT}"
+                "--app"
+                "$<TARGET_FILE:FireStorm>"
+                ${TEST_ARGS}
+        )
+
+        set_tests_properties(
+                "${TEST_NAME}Integration"
+                PROPERTIES
+                TIMEOUT 60
+        )
+    endfunction()
+
+    add_integration_test(
+            NAME Stage1
+            SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/coretech/stage1/test.py"
+    )
+
+    add_integration_test(
+            NAME Stage2
+            SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/coretech/stage2/test.py"
+            ARGS
+            "--"
+            "--classified"
+    )
 endif ()

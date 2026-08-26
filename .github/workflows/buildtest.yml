@@ -6,6 +6,7 @@ on:
       - unit-testing
     paths:
       - 'src/**'
+      - 'coretech/**'
       - '.github/**'
       - 'CMakeLists.txt'
       - 'CMakePresets.json'

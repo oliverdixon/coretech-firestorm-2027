@@ -84,11 +84,8 @@ Prior to the submission deadline, viewing the documentation requires HTTPS authe
 ### Running the Standalone Application
 
 To run _FIRE STORM_ interactively, locate the `FireStorm` executable in the build directory: either
-`cmake-build-debug-app` or `cmake-build-release-app`, relative to the location of `CMakeLists.txt`.
-
-In the following examples, the provided test suites (Stage 1 and Stage 2) have been located at `../stage1` and
-`../stage2` respectively. After each invocation, a set of PDF documents will be produced in the current working
-directory.
+`cmake-build-debug-app` or `cmake-build-release-app`, relative to the location of `CMakeLists.txt`. Following each
+invocation, a set of PDF documents will be produced in the executable directory.
 
 #### Stage 1 Invocation
 
@@ -98,7 +95,7 @@ To run _FIRE STORM_ in the Stage 1 configuration, in which all non-operational d
 
 ```
 $ cmake-build-debug-app/FireStorm &
-$ python3 ../stage1/test.py --quiet
+$ python3 coretech/stage1/test.py --quiet
 Running test...
 [Info] src/LazyFrameSink.cpp:31 says: Established forwarding TCP connection to 127.0.0.1:5744.
 [Info] src/Driver.cpp:47 says: Reconstructed 20 packets with file ID 1 into 1.pdf.
@@ -119,7 +116,7 @@ program will similarly hang until data is received on 127.0.0.1:5733.
 
 ```
 $ cmake-build-debug-app/FireStorm --classified &
-$ python3 ../stage2/test.py --quiet
+$ python3 coretech/stage2/test.py --quiet
 Running test...
 [Info] src/LazyFrameSink.cpp:31 says: Established forwarding TCP connection to 127.0.0.1:5744.
 [Info] src/LazyFrameSink.cpp:31 says: Established forwarding TCP connection to 127.0.0.1:5745.
