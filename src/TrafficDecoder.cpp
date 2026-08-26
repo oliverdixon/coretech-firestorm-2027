@@ -12,6 +12,17 @@
 namespace firestorm
 {
 
+void TrafficDecoder::finish()
+{
+    const auto remaining = std::span<const std::byte>{buffer}.subspan(consumed);
+
+    if (!remaining.empty())
+        throw std::runtime_error("Input ended during an incomplete traffic record.");
+
+    buffer.clear();
+    consumed = 0;
+}
+
 std::uint16_t TrafficDecoder::decode_big_endian(const std::span<const std::byte, 2> bytes) noexcept
 {
     return std::to_integer<std::uint16_t>(bytes[0]) << 8 | std::to_integer<std::uint16_t>(bytes[1]);

@@ -47,7 +47,7 @@ void Driver::run()
 
     for (std::span<const std::byte> bytes = source.read(storage); !bytes.empty(); bytes = source.read(storage))
         decoder.consume(bytes, callback);
-    decoder.finish(callback);
+    decoder.finish();
 
     auto nonempty_groups = packet_groups | std::views::filter([](const auto& g) {
                                return !g.empty();
