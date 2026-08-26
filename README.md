@@ -22,6 +22,9 @@ Additionally, non-functional requirements such as runtime performance, detection
 requirements were considered. These are discussed under [_Performance Considerations_](#performance-considerations)
 and [_Hardening Considerations_](#hardening-considerations).
 
+Correctness can be verified with the supplied Python scripts and a range of additional unit tests. Preparation and use
+of the application and test suites are discussed under [_Building_](#building) and [_Execution_](#execution).
+
 ## Building
 
 Building the software requires the following components:
@@ -34,18 +37,30 @@ Building the software requires the following components:
 
 These are available from `apt` on the Ubuntu 24.04 LTS baseline.
 
-To build _FIRE STORM_, generate the build script for the desired configuration preset (`debug` or `release`) and build
-it:
+### Building the Standalone Application
+
+To build _FIRE STORM_ for use with the supplied Python test cases, generate the build script for the desired
+configuration preset (`debug-app` or `release-app`) and build it:
 
 ```
-$ cmake --preset debug
-$ cmake --build cmake-build-debug
+$ cmake --preset debug-app
+$ cmake --build cmake-build-debug-app
 ```
 
 In the debug configuration, minimal optimisation is undertaken, and all debugging symbols are left resident in the
 executable. At runtime, log messages are produced on `stdout` and `stderr` to indicate status and warnings. In the
 release configuration, extensive optimisation and hardening takes place to resist analysis and detection; these methods
 are discussed in [_Hardening Considerations_](#hardening-considerations).
+
+### Building the Test Suite
+
+To build the _FIRE STORM_ automated unit test suite, use the `debug-tests` or `release-tests` target as desired. The
+test targets are packed with a small executable shim to execute and report the results of all unit tests:
+
+```
+$ cmake --preset debug-tests
+$ cmake --build cmake-build-debug-tests
+```
 
 ## Documentation
 
@@ -62,14 +77,17 @@ Prior to the submission deadline, viewing the documentation requires HTTPS authe
 * Username: `coretech`
 * Password: `coretech`
 
-## Execution and Testing
+## Execution
 
-To test _FIRE STORM_, locate the `FireStorm` executable in the build directory: either `cmake-build-debug` or
-`cmake-build-release`, relative to the location of `CMakeLists.txt`.
+To run _FIRE STORM_ interactively, locate the `FireStorm` executable in the build directory: either
+`cmake-build-debug-app` or `cmake-build-release-app`, relative to the location of `CMakeLists.txt`.
 
 In the following examples, the provided test suites (Stage 1 and Stage 2) have been located at `../stage1` and
 `../stage2` respectively. After each invocation, a set of PDF documents will be produced in the current working
 directory.
+
+Alternatively, if the test suite was built as in [_Building the Test Suite_](#building-the-test-suite), all unit tests
+can be run automatically by invoking the `FireStormTests` executable with no parameters from the CMake build directory.
 
 ### Stage 1 Invocation
 
@@ -78,7 +96,7 @@ To run _FIRE STORM_ in the Stage 1 configuration, in which all non-operational d
 127.0.0.1:5733 from the provided Python script.
 
 ```
-$ cmake-build-debug/FireStorm &
+$ cmake-build-debug-app/FireStorm &
 $ python3 ../stage1/test.py --quiet
 Running test...
 [Info] src/LazyFrameSink.cpp:31 says: Established forwarding TCP connection to 127.0.0.1:5744.
@@ -99,7 +117,7 @@ To run _FIRE STORM_ in the Stage 2 configuration, in which non-operational data 
 program will similarly hang until data is received on 127.0.0.1:5733.
 
 ```
-$ cmake-build-debug/FireStorm --classified &
+$ cmake-build-debug-app/FireStorm --classified &
 $ python3 ../stage2/test.py --quiet
 Running test...
 [Info] src/LazyFrameSink.cpp:31 says: Established forwarding TCP connection to 127.0.0.1:5744.
