@@ -84,7 +84,7 @@ void FrameRouter::finish()
 
     auto finish_sink = [&first_failure](AsyncFrameSink& sink) {
         try {
-            sink.finish();
+            sink.drain();
         } catch (...) {
             if (!first_failure)
                 first_failure = std::current_exception();
@@ -97,23 +97,6 @@ void FrameRouter::finish()
 
     if (first_failure)
         std::rethrow_exception(first_failure);
-}
-
-void FrameRouter::print_summary() const
-{
-    if (policy == Policy::Passthrough) {
-        LOG_F_INFO("Under the passthrough policy, {} frames have been forwarded.", frame_count);
-        tcp_sink.print_summary();
-    } else {
-        LOG_F_INFO("Under the classifying policy, {} frames have been routed, of which {} were dropped for being "
-                   "malicious. In particular:",
-                   frame_count,
-                   malicious_count);
-
-        tcp_sink.print_summary();
-        monitor_sink.print_summary();
-        udp_sink.print_summary();
-    }
 }
 
 } // namespace firestorm

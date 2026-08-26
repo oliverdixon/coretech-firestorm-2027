@@ -68,11 +68,6 @@ public:
     void route(const EthernetFrameView& view);
     void finish();
 
-    /**
-     * Prints cumulative routing and sink statistics.
-     */
-    void print_summary() const;
-
 private:
     using MACAddressView = std::span<const std::byte, 3>; /**< Non-owning view of a three-byte MAC address prefix. */
     using MACPrefix = std::array<std::byte, 3>;           /**< Three-byte MAC address prefix. */

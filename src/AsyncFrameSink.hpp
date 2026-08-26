@@ -27,17 +27,9 @@ namespace firestorm
 {
 
 /**
- * Lazily established destination for forwarded Ethernet frames.
+ * Sink for asynchronously transporting frames to a network endpoint.
  *
- * AsyncFrameSink defers establishing its TCP connection until the first frame is sent. If the destination cannot be
- * reached, the connection is retried using an exponential backoff pattern in subsequent packets; i.e., if it fails for
- * the first time, it will try again on the next packet; if it fails of a second, it waits for two packets, then four,
- * then eight, etc.
- *
- * @note Constructing a sink performs no network I/O.
- * @warning This class is not thread-safe.
- *
- * @todo Update documentation for async.
+ * @todo Document.
  */
 class AsyncFrameSink
 {
@@ -49,15 +41,39 @@ public:
      *
      * @param host Hostname or network address of the destination.
      * @param port TCP port of the destination.
+     * @param maximum_buffered_bytes Maximum number of bytes to buffer, defaults to 8MiB.
      *
      * @throws std::bad_alloc Storing @p host fails.
      */
     AsyncFrameSink(std::string_view host, std::uint16_t port, std::size_t maximum_buffered_bytes = 8U * 1024U * 1024U);
 
+    /**
+     * Drains the sync and closes the connection.
+     */
     ~AsyncFrameSink() noexcept;
 
+    /**
+     * Enqueues a new frame for asynchronous transport to the endpoint.
+     *
+     * @param frame The frame payload bytes.
+     *
+     * @throws std::invalid_argument @p frame was empty.
+     * @throws std::length_error @p frame did not fit in the buffer.
+     * @throws std::exception the worker reported an error on its previous operation.
+     * @throws std::logic_error The sink is closing down and is not accepting new frames.
+     */
     void enqueue(std::shared_ptr<const std::vector<std::byte>> frame);
-    void finish();
+
+    /**
+     * Drains existing frames from the queue and rejoins the worker thread.
+     *
+     * Following the drain operation, the sink is considered closed will accept no more frames.
+     *
+     * @return A pair consisting of the number of successfully sent frames, followed by the number of dropped frames.
+     *
+     * @throws std::exception the worker reported an error on its previous operation.
+     */
+    std::pair<size_t, size_t> drain();
 
     AsyncFrameSink(const AsyncFrameSink&) = delete;
     AsyncFrameSink& operator=(const AsyncFrameSink&) = delete;
@@ -65,18 +81,44 @@ public:
     AsyncFrameSink& operator=(AsyncFrameSink&&) = delete;
 
     /**
-     * Report the sink's current transmission statistics.
+     * Retrieves a formatted string representing the endpoint.
      *
-     * Reports the destination and the current counts of successfully sent and dropped frames using Logger.
+     * @return The endpoint address in <code>host:port</code> format.
      */
-    void print_summary() const;
-
-    /**
-     * Resets the transmission statistics.
-     */
-    void reset_statistics() noexcept;
+    [[nodiscard]] std::string endpoint() const;
 
 private:
+
+    /**
+     * State shared across the main thread and the encapsulated worker.
+     *
+     * SharedState accesses should be protected by a synchronisation mechanism, such as a mutex.
+     */
+    struct SharedState
+    {
+        bool closing = false;              /**< Is the endpoint connection in progress of being closed? */
+        std::exception_ptr worker_failure; /**< Propagated exception from the worker. */
+        std::deque<std::shared_ptr<const std::vector<std::byte>>> frames; /**< Queue of shared-ownership frames. */
+        std::size_t buffered_bytes = 0; /**< Total number of bytes present in @ref frames. */
+    };
+
+    /**
+     * Metadata for the connection.
+     *
+     * This state may be shared between states, providing they run non-concurrently. Statistics is updated by the worker
+     * thread and queried by the main thread following re-joining. This is a bit awkward, but avoids the use of
+     * synchronisation primitives in hot loops.
+     */
+    struct Statistics
+    {
+        /** Number of packets to wait before reattempting to establish the connection. */
+        std::size_t connection_cooloff = 0;
+
+        std::size_t failed_connection_attempts = 0; /**< Total number of failed connection attempts. */
+        std::size_t frames_sent = 0;                /**< Total number of frames sent to the endpoint. */
+        std::size_t frames_dropped = 0;             /**< Total number of frames dropped due to unconnected endpoint. */
+    };
+
     /**
      * Attempt to connect to the stored endpoint.
      *
@@ -86,31 +128,31 @@ private:
      */
     void attempt_connection();
 
+    /**
+     * Receives frames on the SharedState queue and forwards them to the endpoint.
+     *
+     * If the endpoint is unconnected, @ref attempt_connection is used to establish a connection. The frame is popped
+     * from the queue; if connected, the frame is sent to the endpoint; otherwise, it is dropped. In all cases
+     * Statistics is updated.
+     *
+     * All exceptions are captured into the SharedShared for propagation by the main thread. If an exception occurs, the
+     * event loop stops and this function returns.
+     */
     void run_worker() noexcept;
 
-    std::string host;
-    std::uint16_t port;
-    std::size_t maximum_buffered_bytes;
-    std::size_t buffered_bytes = 0;
+    const std::string host;                   /**< Network address of the endpoint. */
+    const std::uint16_t port;                 /**< Port number of the endpoint. */
+    const std::size_t maximum_buffered_bytes; /**< Maximum number of total bytes resident in the buffer. */
 
-    /** Number of packets to wait before reattempting to establish @ref transport. */
-    std::size_t connection_cooloff = 0;
+    Statistics statistics;                    /**< Connection metadata. */
 
-    /** Total number of failed connection attempts since the last @ref reset_statistics call. */
-    std::size_t failed_connection_attempts = 0;
+    std::mutex shared_state_mutex;            /**< Synchronisation primitive to protect @ref shared_state. */
+    std::condition_variable frame_available;  /**< Indicator for new frames present on the queue. */
+    std::condition_variable buffer_available; /**< Indicator for the frame buffer being available for writing. */
 
-    std::atomic_size_t frames_sent = 0;
-    std::atomic_size_t frames_dropped = 0;
-
-    std::mutex mutex;
-    std::condition_variable frame_available; /**< Indicator for when a frame is available on the queue. */
-    std::condition_variable buffer_available; /**< Indicator for  */
-    std::deque<std::shared_ptr<const std::vector<std::byte>>> frame_queue;
-
-    bool closing = false;
-    std::exception_ptr worker_failure;
-    std::optional<TCPConnection> transport;
-    std::jthread worker;
+    SharedState shared_state;                 /**< State shared between main thread and worker. */
+    std::optional<TCPConnection> transport;   /**< Worker-controlled endpoint. */
+    std::jthread worker;                      /**< Thread to manage TCP communication. */
 };
 
 } // namespace firestorm
