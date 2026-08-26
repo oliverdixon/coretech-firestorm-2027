@@ -10,8 +10,8 @@
 #ifndef FIRESTORM_DRIVER_HPP
 #define FIRESTORM_DRIVER_HPP
 
+#include "AsyncFrameRouter.hpp"
 #include "CTFSPacket.hpp"
-#include "FrameRouter.hpp"
 #include "TrafficDecoder.hpp"
 
 namespace firestorm
@@ -36,7 +36,7 @@ public:
      * @param routing_policy The routing policy for FrameRouter.
      * @param drop_bad_checksums Should invalid checksums be ignored?
      */
-    explicit Driver(FrameRouter::Policy routing_policy, bool drop_bad_checksums);
+    explicit Driver(AsyncFrameRouter::Policy routing_policy, bool drop_bad_checksums);
 
     /**
      * Processes the incoming stream and reconstructs the captured PDF.
@@ -94,7 +94,7 @@ private:
     void process_record(const EthernetFrameView& ethernet_frame_view);
 
     bool drop_bad_checksums;  /**< Should invalid checksums be ignored? */
-    FrameRouter frame_router; /**< Routing delegate for forwarding frame packets. */
+    AsyncFrameRouter frame_router; /**< Routing delegate for forwarding frame packets. */
 
     /** Unordered sets of packets, grouped by file ID. */
     std::vector<std::vector<CTFSPacket>> packet_groups;

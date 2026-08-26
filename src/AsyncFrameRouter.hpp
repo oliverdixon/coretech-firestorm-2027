@@ -1,14 +1,14 @@
 /**
  * @file
  *
- * FrameRouter specification
+ * AsyncFrameRouter specification
  *
  * @author Oliver Dixon
  * @date 2026-08-20
  */
 
-#ifndef FIRESTORM_FRAMEROUTER_HPP
-#define FIRESTORM_FRAMEROUTER_HPP
+#ifndef FIRESTORM_ASYNCFRAMEROUTER_HPP
+#define FIRESTORM_ASYNCFRAMEROUTER_HPP
 
 #include <algorithm>
 
@@ -19,22 +19,9 @@ namespace firestorm
 {
 
 /**
- * Routes decoded Ethernet frames according to a selected routing policy.
- *
- * In passthrough mode, every frame is forwarded to the primary TCP sink.
- *
- * In classified mode, the router examines the source and destination MAC addresses and the enclosed IP protocol:
- *  - Frames with a monitored destination MAC prefix are copied to the monitor sink.
- *  - Frames with a malicious source MAC prefix are dropped.
- *  - Other frames are forwarded to either the TCP or UDP sink according to their IP protocol.
- *
- * The router maintains counts of processed frames and frames identified as having a malicious source.
- *
- * Connections to output endpoints are established lazily by the corresponding LazyFrameSink.
- *
- * @todo update documentation for async.
+ * @todo Document.
  */
-class FrameRouter
+class AsyncFrameRouter
 {
 public:
     /**
@@ -53,7 +40,7 @@ public:
      *
      * @param policy Routing policy to apply.
      */
-    explicit FrameRouter(Policy policy);
+    explicit AsyncFrameRouter(Policy policy);
 
     /**
      * Routes an Ethernet frame.
@@ -62,11 +49,9 @@ public:
      * monitored-destination, malicious-source, and IP-protocol rules described by FrameRouter.
      *
      * @param view Decoded non-owning view of the frame to route.
-     *
-     * @note Storage referenced by @p frame must remain valid for the duration of this call.
      */
     void route(const EthernetFrameView& view);
-    void finish();
+    void drain_and_report();
 
 private:
     using MACAddressView = std::span<const std::byte, 3>; /**< Non-owning view of a three-byte MAC address prefix. */
@@ -105,7 +90,6 @@ private:
      */
     [[nodiscard]] static constexpr bool has_monitored_destination(MACAddressView destination) noexcept;
 
-
     /**
      * Tests whether a source MAC address is known to be malicious.
      *
@@ -125,4 +109,4 @@ private:
 
 } // namespace firestorm
 
-#endif // FIRESTORM_FRAMEROUTER_HPP
+#endif // FIRESTORM_ASYNCFRAMEROUTER_HPP

@@ -22,7 +22,7 @@
 namespace firestorm
 {
 
-Driver::Driver(const FrameRouter::Policy routing_policy, const bool drop_bad_checksums) :
+Driver::Driver(const AsyncFrameRouter::Policy routing_policy, const bool drop_bad_checksums) :
     drop_bad_checksums(drop_bad_checksums),
     frame_router(routing_policy)
 {
@@ -66,8 +66,7 @@ void Driver::run()
         packet_group.clear();
     }
 
-    frame_router.finish();
-
+    frame_router.drain_and_report();
     packet_groups.clear();
 }
 
@@ -147,7 +146,7 @@ int main(const int argc, const char* const* const argv)
     struct Options
     {
         bool drop_bad_checksums = false;
-        FrameRouter::Policy policy = FrameRouter::Policy::Passthrough;
+        AsyncFrameRouter::Policy policy = AsyncFrameRouter::Policy::Passthrough;
     } options;
 
     const auto args =
@@ -159,7 +158,7 @@ int main(const int argc, const char* const* const argv)
         if (arg == "--drop-bad-checksums")
             options.drop_bad_checksums = true;
         else if (arg == "--classified")
-            options.policy = FrameRouter::Policy::Classified;
+            options.policy = AsyncFrameRouter::Policy::Classified;
 
     // Run the driver and report fatal errors.
 

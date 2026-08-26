@@ -16,8 +16,8 @@ add_executable(FireStorm
         src/AsyncFrameSink.cpp
         src/AsyncFrameSink.hpp
         src/EthernetFrameView.hpp
-        src/FrameRouter.cpp
-        src/FrameRouter.hpp
+        src/AsyncFrameRouter.cpp
+        src/AsyncFrameRouter.hpp
         src/CTFSRecordView.hpp
         src/CTFSRecordView.cpp
         src/Logger.cpp
