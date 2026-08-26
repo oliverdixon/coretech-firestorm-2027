@@ -29,7 +29,22 @@ namespace firestorm
 /**
  * Sink for asynchronously transporting frames to a network endpoint.
  *
- * @todo Document.
+ * AsyncFrameSink owns a dedicated worker thread and a bounded FIFO queue. Calling @ref enqueue transfers shared
+ * ownership of an immutable frame into the queue, allowing the caller to continue without waiting for network I/O.
+ * Frames are transmitted by the worker in enqueue order.
+ *
+ * The queue is bounded by the total number of buffered bytes, including the frame currently being transmitted. If
+ * accepting another frame would exceed the limit, @ref enqueue blocks until sufficient capacity becomes available, the
+ * sink begins closing, or the worker reports a failure.
+ *
+ * Frame data is retained using shared ownership of immutable storage. This permits the same frame allocation to be
+ * queued concurrently by multiple sinks without copying its payload or retaining a view into a decoded-owned storage.
+ *
+ * Calling @ref drain prevents further enqueuing, transmits all queued frames, joins the worker, and propagates any
+ * worker failure. A successful drain returns the transmission statistics and resets the sink for reuse.
+ *
+ * @warning A blocking socket operation must have a finite timeout; otherwise, draining or destroying the sink may block
+ * the main thread indefinitely.
  */
 class AsyncFrameSink
 {
@@ -48,7 +63,7 @@ public:
     AsyncFrameSink(std::string_view host, std::uint16_t port, std::size_t maximum_buffered_bytes = 8U * 1024U * 1024U);
 
     /**
-     * Drains the sync and closes the connection.
+     * Drains the sink and closes the connection.
      */
     ~AsyncFrameSink() noexcept;
 
@@ -65,9 +80,7 @@ public:
     void enqueue(std::shared_ptr<const std::vector<std::byte>> frame);
 
     /**
-     * Drains existing frames from the queue and rejoins the worker thread.
-     *
-     * Following the drain operation, the sink is considered closed will accept no more frames.
+     * Drains existing frames from the queue.
      *
      * @return A pair consisting of the number of successfully sent frames, followed by the number of dropped frames.
      *
@@ -88,7 +101,6 @@ public:
     [[nodiscard]] std::string endpoint() const;
 
 private:
-
     /**
      * State shared across the main thread and the encapsulated worker.
      *
@@ -112,7 +124,7 @@ private:
     struct Statistics
     {
         /** Number of packets to wait before reattempting to establish the connection. */
-        std::size_t connection_cooloff = 0;
+        std::uint16_t connection_cooloff = 0;
 
         std::size_t failed_connection_attempts = 0; /**< Total number of failed connection attempts. */
         std::size_t frames_sent = 0;                /**< Total number of frames sent to the endpoint. */
@@ -127,6 +139,16 @@ private:
      * connection attempts. Attempting a connection during the cooling off period will do nothing.
      */
     void attempt_connection();
+
+    /**
+     * Drains existing frames from the queue and rejoins the worker thread.
+     *
+     * Following the drain operation, the sink is considered closed will accept no more frames, but @ref transport
+     * persists. To reset the sink, the statistics should be reset and the worker thread restarted.
+     *
+     * @throws std::exception the worker reported an error on its previous operation.
+     */
+    void drain_for_destruction();
 
     /**
      * Receives frames on the SharedState queue and forwards them to the endpoint.
@@ -148,7 +170,7 @@ private:
 
     std::mutex shared_state_mutex;            /**< Synchronisation primitive to protect @ref shared_state. */
     std::condition_variable frame_available;  /**< Indicator for new frames present on the queue. */
-    std::condition_variable buffer_available; /**< Indicator for the frame buffer being available for writing. */
+    std::condition_variable buffer_available; /**< Indicator for the frame buffer having capacity for writing. */
 
     SharedState shared_state;                 /**< State shared between main thread and worker. */
     std::optional<TCPConnection> transport;   /**< Worker-controlled endpoint. */

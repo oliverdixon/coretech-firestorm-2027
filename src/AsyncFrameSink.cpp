@@ -19,19 +19,20 @@ AsyncFrameSink::AsyncFrameSink(const std::string_view host,
                                const std::size_t maximum_buffered_bytes) :
     host(host),
     port(port),
-    maximum_buffered_bytes(maximum_buffered_bytes),
-    worker([this] {
-        run_worker();
-    })
+    maximum_buffered_bytes(maximum_buffered_bytes)
 {
     if (maximum_buffered_bytes == 0)
         throw std::invalid_argument("AsyncFrameSink cannot have an empty buffer.");
+
+    worker = std::jthread([this] {
+        run_worker();
+    });
 }
 
 AsyncFrameSink::~AsyncFrameSink() noexcept
 {
     try {
-        drain();
+        drain_for_destruction();
     } catch (...) {
         // Swallow exceptions in destructor.
     }
@@ -76,6 +77,68 @@ void AsyncFrameSink::enqueue(std::shared_ptr<const std::vector<std::byte>> frame
 
 std::pair<size_t, size_t> AsyncFrameSink::drain()
 {
+    // Do the destructive drain. This breaks RAII, so to preserve it we need to reset the class state explicitly.
+    drain_for_destruction();
+
+    // Preserve stats we care about and reset the class state.
+    std::pair preserved_stats{statistics.frames_sent, statistics.frames_dropped};
+
+    statistics.frames_sent = 0;
+    statistics.frames_dropped = 0;
+    statistics.connection_cooloff = 0;
+    statistics.failed_connection_attempts = 0;
+
+    {
+        // Indicate that we've reset and can accept frames again.
+        std::scoped_lock lock(shared_state_mutex);
+        shared_state.buffered_bytes = 0;
+        shared_state.frames.clear();
+        shared_state.closing = false;
+    }
+
+    // Reset the transport and restart the worker. The transport will be lazily re-established by the worker.
+    transport.reset();
+    worker = std::jthread([this] {
+        run_worker();
+    });
+
+    return preserved_stats;
+}
+
+std::string AsyncFrameSink::endpoint() const
+{
+    return std::format("{}:{}", host, port);
+}
+
+void AsyncFrameSink::attempt_connection()
+{
+    if (statistics.connection_cooloff == 0)
+        try {
+            transport.emplace(host, port);
+            LOG_F_INFO("Established forwarding TCP connection to {}:{}.", host, port);
+        } catch (const std::exception& error) {
+            // Apply exponential back-off cooling off period.
+
+            using CooloffT = decltype(statistics.connection_cooloff);
+            constexpr auto digits = std::numeric_limits<CooloffT>::digits;
+            if (statistics.failed_connection_attempts < digits)
+                statistics.connection_cooloff = CooloffT{1} << statistics.failed_connection_attempts;
+
+            ++statistics.failed_connection_attempts;
+
+            LOG_F_WARNING("Could not establish connection to {}:{} because {}. Will try again in {} packet{}.",
+                          host,
+                          port,
+                          error.what(),
+                          statistics.connection_cooloff,
+                          statistics.connection_cooloff == 1 ? "" : "s");
+        }
+    else
+        --statistics.connection_cooloff;
+}
+
+void AsyncFrameSink::drain_for_destruction()
+{
     {
         // Indicate that we're closing the connection so no more frames are accepted.
         std::scoped_lock lock(shared_state_mutex);
@@ -95,44 +158,12 @@ std::pair<size_t, size_t> AsyncFrameSink::drain()
         if (shared_state.worker_failure)
             std::rethrow_exception(shared_state.worker_failure);
     }
-
-    std::pair stats{statistics.frames_sent, statistics.frames_dropped};
-    statistics.frames_sent = 0;
-    statistics.frames_dropped = 0;
-
-    return stats;
-}
-
-std::string AsyncFrameSink::endpoint() const
-{
-    return std::format("{}:{}", host, port);
-}
-
-void AsyncFrameSink::attempt_connection()
-{
-    if (statistics.connection_cooloff == 0)
-        try {
-            transport.emplace(host, port);
-            LOG_F_INFO("Established forwarding TCP connection to {}:{}.", host, port);
-        } catch (const std::exception& error) {
-            if (statistics.failed_connection_attempts < sizeof(statistics.connection_cooloff) * 8)
-                // Exponential back-off.
-                statistics.connection_cooloff = 1U << statistics.failed_connection_attempts;
-            ++statistics.failed_connection_attempts;
-
-            LOG_F_WARNING("Could not establish connection to {}:{} because {}. Will try again in {} packet{}.",
-                          host,
-                          port,
-                          error.what(),
-                          statistics.connection_cooloff,
-                          statistics.connection_cooloff == 1 ? "" : "s");
-        }
-    else
-        --statistics.connection_cooloff;
 }
 
 void AsyncFrameSink::run_worker() noexcept
 {
+    std::size_t last_frame_size = 0;
+
     try {
         while (true) {
             std::shared_ptr<const std::vector<std::byte>> shared_frame;
@@ -144,6 +175,10 @@ void AsyncFrameSink::run_worker() noexcept
                 });
 
                 if (shared_state.frames.empty()) {
+                    /*
+                     * If we bailed out early, we either got an empty frame (so we skip it), or the connection is going
+                     * down.
+                     */
                     if (shared_state.closing)
                         return;
 
@@ -154,6 +189,9 @@ void AsyncFrameSink::run_worker() noexcept
                 shared_state.frames.pop_front();
             }
 
+            last_frame_size = shared_frame->size();
+
+            // We own the frame in this scope. Send it to the endpoint; if it's not connected, retry now.
             if (!transport.has_value())
                 attempt_connection();
 
@@ -163,20 +201,28 @@ void AsyncFrameSink::run_worker() noexcept
             } else
                 ++statistics.frames_dropped;
 
+            // TCPConnection::write_all didn't throw, so we can clean up here.
             {
                 std::scoped_lock lock(shared_state_mutex);
                 shared_state.buffered_bytes -= shared_frame->size();
             }
 
+            last_frame_size = 0;
             buffer_available.notify_all();
         }
     } catch (...) {
+        // Likely TCPConnection::write_all threw. Clean up the shared state to indicate that the frame was dropped.
+
         {
             std::scoped_lock lock(shared_state_mutex);
+            shared_state.buffered_bytes -= last_frame_size;
             if (!shared_state.worker_failure)
                 shared_state.worker_failure = std::current_exception();
             shared_state.closing = true;
         }
+
+        last_frame_size = 0;
+        ++statistics.frames_dropped;
 
         frame_available.notify_all();
         buffer_available.notify_all();
