@@ -8,12 +8,31 @@
  */
 
 #include "../../TrafficDecoder.hpp"
+#include "../CTFSPacketStreamBuilder.hpp"
 #include "../TestHarness.hpp"
 
 using namespace firestorm;
 
 namespace
 {
+
+void complete_packet_produces_one_record(test::TestHarness& harness)
+{
+    const std::string payload = "%PDF-test document\n%%EOF";
+    const auto encoded_packet = CTFSPacketStreamBuilder::make_ctfs_record({
+        .sequence_number = 0,
+        .file_id = 1,
+        .payload = std::as_bytes(std::span{payload}),
+    });
+
+    TrafficDecoder decoder;
+    std::size_t record_count = 0;
+
+    decoder.consume(encoded_packet, [&record_count](const TrafficRecordView&) { ++record_count; });
+    decoder.finish();
+
+    CHECK_EQUALS(record_count, 1);
+}
 
 void empty_input_is_accepted(test::TestHarness& harness)
 {
@@ -53,6 +72,7 @@ int main()
     // ReSharper disable CppUseDesignatedInitializers
 
     return test::TestHarness::run({
+        { "complete_packet_produces_one_record",complete_packet_produces_one_record },
         { "empty_input_is_accepted",empty_input_is_accepted },
         { "partial_magic_is_rejected_at_end_of_stream", partial_magic_is_rejected_at_end_of_stream }
     });
