@@ -1,0 +1,41 @@
+name: Build and Test FIRE STORM
+
+on:
+  push:
+    branches:
+      - unit-testing
+
+concurrency:
+  group: deploy-firestorm
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test-firestorm:
+    runs-on: [linux]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          clean: true
+
+      - name: Configure tests
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cmake --preset release-tests
+
+      - name: Build tests
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cmake --build cmake-build-release-tests
+
+      - name: Run tests
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ctest --test-dir cmake-build-release-tests --output-on-failure
