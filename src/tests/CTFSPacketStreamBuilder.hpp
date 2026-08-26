@@ -9,28 +9,54 @@
 
 #ifndef FIRESTORM_CTFSPACKETSTREAMBUILDER_HPP
 #define FIRESTORM_CTFSPACKETSTREAMBUILDER_HPP
+
 #include <limits>
 
-namespace firestorm
+namespace firestorm::test
 {
 
 /**
- * @todo Document
+ * Builds binary records in the CTFS packet format.
+ *
+ * A CTFS record consists of a 16-byte header followed by a variable-length payload. Multi-byte integer fields are
+ * encoded in big-endian ordering.
+ *
+ * @see CTFSPacket
+ * @see CTFSRecordView
  */
 class CTFSPacketStreamBuilder
 {
 public:
+
+    /**
+     * Options used when constructing a new record.
+     *
+     * This type does not own the payload bytes; the underlying storage must remain valid for the entire duration of the
+     * call in which Options is used.
+     */
     struct Options
     {
-        std::uint16_t sequence_number = 0;
-        std::uint8_t file_id = 0;
-        std::span<const std::byte> payload;
-        std::array<std::byte, 3> padding{};
+        std::uint16_t sequence_number = 0;              /**< Sequence number for the packet header. */
+        std::uint8_t file_id = 0;                       /**< File ID for the packet header. */
+        std::span<const std::byte> payload;             /**< Non-owning view into the payload data. */
+        std::array<std::byte, 3> padding{};             /**< Zero padding bytes. */
 
-        std::optional<std::uint16_t> advertised_length;
-        std::optional<std::uint32_t> checksum;
+        std::optional<std::uint16_t> advertised_length; /**< Advertised length; computed unless provided. */
+        std::optional<std::uint32_t> checksum;          /**< Checksum; computed unless provided. */
     };
 
+    /**
+     * Produce the standard binary representation of a complete CTFS record.
+     *
+     * The function writes the CTFS header, appends the supplied payload, and encodes the reference checksum unless
+     * provided in @p options.
+     *
+     * @param options Options describing the packet to construct.
+     *
+     * @return The complete serialised CTFS record in big-endian byte ordering.
+     *
+     * @throws std::invalid_argument The payload size exceeds the maximum value representable by a 16-bit data field.
+     */
     [[nodiscard]] static std::vector<std::byte> make_ctfs_record(const Options& options)
     {
         if (options.payload.size() > std::numeric_limits<std::uint16_t>::max())
@@ -41,20 +67,20 @@ public:
         record.reserve(16 + options.payload.size());
 
         // Step 1.  Magic bytes.
-        record.insert(record.end(), {std::byte{'C'}, std::byte{'T'}, std::byte{'F'}, std::byte{'S'}});
+        record.insert(record.end(), magic.begin(), magic.end());
 
         // Step 2.  Sequence number, data length, file ID, checksum placeholder, and padding.
         append_be16(record, options.sequence_number);
         append_be16(record, data_length);
         record.push_back(static_cast<std::byte>(options.file_id));
-        append_be32(record, 0);
+        record.insert(record.end(), magic.begin(), magic.end());
         record.insert(record.end(), options.padding.begin(), options.padding.end());
 
         // Step 3.  Payload.
         record.insert(record.end(), options.payload.begin(), options.payload.end());
 
         // Step 4.  Overwrite checksum now the entire packet is known.
-        const auto reference_checksum = get_reference_checksum(record);
+        const auto reference_checksum = options.checksum.value_or(get_reference_checksum(record));
         record[9] = static_cast<std::byte>(reference_checksum >> 24);
         record[10] = static_cast<std::byte>(reference_checksum >> 16);
         record[11] = static_cast<std::byte>(reference_checksum >> 8);
@@ -64,23 +90,32 @@ public:
     }
 
 private:
-    [[nodiscard]] static std::uint32_t get_reference_checksum(const std::span<const std::byte> record)
+    /**
+     * Magic bytes for the header prefix and checksum placeholder.
+     */
+    static constexpr std::array magic{
+        std::byte{'C'},
+        std::byte{'T'},
+        std::byte{'F'},
+        std::byte{'S'},
+    };
+
+    /**
+     * Calculates the reference checksum for a serialised CTFS record.
+     *
+     * The record is processed a sa sequence of big-endian 32-bit words. During calculation, checksum bytes 9 through 12
+     * are treated as the byte sequence `CTFS`. An incomplete final word is padded with zero bytes.
+     *
+     * For each word, the word is added to a 32-bit accumulator and the result is rotated left by one bit.
+     *
+     * @param record Complete serialised record for which to calculate the checksum.
+     *
+     * @return The calculated 32-bit checksum.
+     */
+    [[nodiscard]] static std::uint32_t get_reference_checksum(const std::span<const std::byte> record) noexcept
     {
-        const auto byte_at = [&record](const std::size_t offset) {
-            static constexpr std::array replacement{
-                std::byte{'C'},
-                std::byte{'T'},
-                std::byte{'F'},
-                std::byte{'S'},
-            };
-
-            if (offset >= 9 && offset <= 12)
-                return replacement[offset - 9];
-
-            if (offset >= record.size())
-                return std::byte{0};
-
-            return record[offset];
+        const auto byte_at = [&record](const std::size_t offset) noexcept {
+            return offset < record.size() ? record[offset] : std::byte{0};
         };
 
         std::uint32_t accumulator = 0;
@@ -97,12 +132,24 @@ private:
         return accumulator;
     }
 
+    /**
+     * Appends an unsigned 16-bit integer in big-endian byte order.
+     *
+     * @param output Destination byte buffer.
+     * @param value Value to append.
+     */
     static void append_be16(std::vector<std::byte>& output, const std::uint16_t value)
     {
         output.push_back(static_cast<std::byte>(value >> 8));
         output.push_back(static_cast<std::byte>(value));
     }
 
+    /**
+     * Appends an unsigned 32-bit integer in big-endian byte order.
+     *
+     * @param output Destination byte buffer.
+     * @param value Value to append.
+     */
     static void append_be32(std::vector<std::byte>& output, const std::uint32_t value)
     {
         output.push_back(static_cast<std::byte>(value >> 24));
@@ -112,6 +159,6 @@ private:
     }
 };
 
-} // namespace firestorm
+} // namespace firestorm::test
 
 #endif // FIRESTORM_CTFSPACKETSTREAMBUILDER_HPP

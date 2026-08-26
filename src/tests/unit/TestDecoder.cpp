@@ -12,11 +12,12 @@
 #include "../TestHarness.hpp"
 
 using namespace firestorm;
+using namespace firestorm::test;
 
 namespace
 {
 
-void complete_packet_produces_one_record(test::TestHarness& harness)
+void complete_packet_produces_one_record(TestHarness& harness)
 {
     const std::string payload = "%PDF-test document\n%%EOF";
     const auto encoded_packet = CTFSPacketStreamBuilder::make_ctfs_record({
@@ -28,7 +29,7 @@ void complete_packet_produces_one_record(test::TestHarness& harness)
     TrafficDecoder decoder;
     std::size_t record_count = 0;
 
-    decoder.consume(encoded_packet, [&record_count](const TrafficRecordView&) { ++record_count; });
+    decoder.consume(encoded_packet, [&record_count](const TrafficRecord&) { ++record_count; });
     decoder.finish();
 
     CHECK_EQUALS(record_count, 1);
@@ -38,7 +39,7 @@ void empty_input_is_accepted(test::TestHarness& harness)
 {
     TrafficDecoder decoder;
 
-    decoder.consume({}, [&](const TrafficRecordView&) {
+    decoder.consume({}, [&](const TrafficRecord&) {
         CHECK(false);
     });
 
@@ -46,7 +47,7 @@ void empty_input_is_accepted(test::TestHarness& harness)
     CHECK(true);
 }
 
-void partial_magic_is_rejected_at_end_of_stream(test::TestHarness& harness)
+void partial_magic_is_rejected_at_end_of_stream(TestHarness& harness)
 {
     TrafficDecoder decoder;
 
@@ -57,11 +58,25 @@ void partial_magic_is_rejected_at_end_of_stream(test::TestHarness& harness)
         std::byte{'S'},
     };
 
-    decoder.consume(input, [&harness](const TrafficRecordView&) {
+    decoder.consume(input, [&harness](const TrafficRecord&) {
         CHECK(false);
     });
 
     CHECK_THROWS(decoder.finish(), std::runtime_error);
+}
+
+void invalid_checksum_is_rejected(TestHarness& harness)
+{
+    const std::string payload = "%PDF-test document\n%%EOF";
+    const auto encoded_packet = CTFSPacketStreamBuilder::make_ctfs_record({
+        .sequence_number = 0,
+        .file_id = 1,
+        .payload = std::as_bytes(std::span{payload}),
+        .checksum = 0xDEADBEEF
+    });
+
+    TrafficDecoder decoder(true);
+    CHECK_THROWS(decoder.consume(encoded_packet, [&](const TrafficRecord&) { }), std::runtime_error);
 }
 
 } // namespace
@@ -71,10 +86,11 @@ int main()
     // clang-format off
     // ReSharper disable CppUseDesignatedInitializers
 
-    return test::TestHarness::run({
-        { "complete_packet_produces_one_record",complete_packet_produces_one_record },
-        { "empty_input_is_accepted",empty_input_is_accepted },
-        { "partial_magic_is_rejected_at_end_of_stream", partial_magic_is_rejected_at_end_of_stream }
+    return TestHarness::run({
+        { "Complete packet produces exactly one record",complete_packet_produces_one_record },
+        { "Empty input is accepted",empty_input_is_accepted },
+        { "Partial magic is rejected at End-of-Stream", partial_magic_is_rejected_at_end_of_stream },
+        { "Invalid checksum is rejected", invalid_checksum_is_rejected }
     });
 
     // ReSharper restore CppUseDesignatedInitializers
