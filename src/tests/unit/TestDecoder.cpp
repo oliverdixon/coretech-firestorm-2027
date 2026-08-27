@@ -19,6 +19,44 @@ using namespace firestorm::test;
 namespace
 {
 
+/**
+ * Validate a TrafficRecord and append to a destination vector.
+ *
+ * @param harness The active TestHarness.
+ * @param output The destination for @p record.
+ * @param record The TrafficRecord validated to hold the CTFSPacket alternative.
+ */
+void capture_ctfs_packet(TestHarness& harness, std::vector<CTFSPacket>& output, TrafficRecord&& record)
+{
+    CHECK(std::holds_alternative<CTFSPacket>(record));
+    auto* const packet = std::get_if<CTFSPacket>(&record);
+    if (packet != nullptr)
+        output.emplace_back(std::move(*packet));
+}
+
+/**
+ * Concatenate ranges into a single vector of bytes.
+ *
+ * This is a shim for pre-C++26 standard libraries that do not provide @c std::views::concatenate.
+ *
+ * @tparam Buffers Types of constituent ranges
+ * @param buffers Constituent ranges
+ *
+ * @return Concatenated @p buffers
+ */
+template <typename... Buffers> std::vector<std::byte> concatenate(const Buffers&... buffers)
+{
+    std::vector<std::byte> result;
+    result.reserve((std::size_t{0} + ... + buffers.size()));
+    (result.insert(result.end(), buffers.begin(), buffers.end()), ...);
+    return result;
+}
+
+/**
+ * @test Verifies that a single compliant CTFSPacket is correctly decoded by the TrafficDecoder.
+ *
+ * @param harness Active harness.
+ */
 void decode_valid_packet(TestHarness& harness)
 {
     const std::string payload = "%PDF-test document\n%%EOF";
@@ -47,6 +85,13 @@ void decode_valid_packet(TestHarness& harness)
     CHECK_EQUALS(record_count, 1);
 }
 
+/**
+ * @test Verifies that empty input is accepted by the TrafficDecoder.
+ *
+ * The consumption callback must not be invoked.
+ *
+ * @param harness Active harness.
+ */
 void accept_empty_input(test::TestHarness& harness)
 {
     TrafficDecoder decoder;
@@ -59,6 +104,14 @@ void accept_empty_input(test::TestHarness& harness)
     CHECK(true);
 }
 
+/**
+ * @test Verifies that a partial CTFS header is rejected by the TrafficDecoder.
+ *
+ * In particular, the bytes "CTFS" without any following header or payload is rejected. The consumption callback must
+ * not be invoked.
+ *
+ * @param harness Active harness.
+ */
 void reject_partial_header(TestHarness& harness)
 {
     TrafficDecoder decoder;
@@ -77,6 +130,11 @@ void reject_partial_header(TestHarness& harness)
     CHECK_THROWS(decoder.finish(), std::runtime_error);
 }
 
+/**
+ * @test Verifies that a CTFS packet with an invalid checksum is rejected by the TrafficDecoder.
+ *
+ * @param harness Active harness.
+ */
 void reject_bad_checksum(TestHarness& harness)
 {
     const std::string payload = "%PDF-test document\n%%EOF";
@@ -94,6 +152,14 @@ void reject_bad_checksum(TestHarness& harness)
                  std::runtime_error);
 }
 
+/**
+ * @test Verifies that valid CTFS packets are decoded correctly across any segmentation boundary.
+ *
+ * This test verifies that, regardless of split (of which all possible ones are tested), the TrafficDecoder correctly
+ * buffers and recovers data across consumption call boundaries and does not prematurely invoke the callback.
+ *
+ * @param harness Active harness.
+ */
 void decode_segmented_packets(TestHarness& harness)
 {
     const std::string payload = "%PDF-test document\n%%EOF";
@@ -130,6 +196,13 @@ void decode_segmented_packets(TestHarness& harness)
     }
 }
 
+/**
+ * @test Verifies that truncated CTFS packets are rejected by the TrafficDecoder.
+ *
+ * Despite a valid stream, the TrafficDecoder must reject an incomplete packet, determined by its advertised length.
+ *
+ * @param harness Active harness.
+ */
 void reject_nonempty_truncated_packets(TestHarness& harness)
 {
     const std::string payload = "%PDF-test document\n%%EOF";
@@ -152,8 +225,203 @@ void reject_nonempty_truncated_packets(TestHarness& harness)
     }
 }
 
+/**
+ * @test Verifies that concatenated records sent in a single stream are decoded by the TrafficDecoder.
+ *
+ * @param harness Active harness.
+ */
+void decode_coalesced_records(TestHarness& harness)
+{
+    const std::string first_pl = "first";
+    const std::string second_pl = "second";
+    const std::string third_pl = "third";
+
+    const auto first = CTFSPacketStreamBuilder::make_ctfs_record(
+        {.sequence_number = 0, .payload = std::as_bytes(std::span{first_pl})});
+
+    const auto second = CTFSPacketStreamBuilder::make_ctfs_record(
+        {.sequence_number = 1, .payload = std::as_bytes(std::span{second_pl})});
+
+    const auto third = CTFSPacketStreamBuilder::make_ctfs_record(
+        {.sequence_number = 2, .payload = std::as_bytes(std::span{third_pl})});
+
+    const auto stream = concatenate(first, second, third);
+
+    TrafficDecoder decoder;
+    std::vector<CTFSPacket> decoded;
+
+    decoder.consume(stream, [&harness, &decoded](TrafficRecord&& record) {
+        capture_ctfs_packet(harness, decoded, std::move(record));
+    });
+
+    decoder.finish();
+
+    CHECK_EQUALS(decoded.size(), 3);
+}
+
+/**
+ * @test Verifies that CTFS packets with padding bytes set to non-zero are rejected.
+ *
+ * @param harness Active harness.
+ */
+void reject_nonzero_padding(TestHarness& harness)
+{
+    const std::string payload = "pl_upward";
+    const auto encoded = CTFSPacketStreamBuilder::make_ctfs_record(
+        {.payload = std::as_bytes(std::span{payload}), .padding = {std::byte{0xAA}, std::byte{0xBB}, std::byte{0xCC}}});
+
+    TrafficDecoder decoder;
+    CHECK_THROWS(decoder.consume(encoded,
+                                 [](TrafficRecord&&) {
+                                 }),
+                 std::runtime_error);
+}
+
+/**
+ * @test Verifies that CTFS packets with an incorrect advertised length are rejected.
+ *
+ * @param harness Active harness.
+ */
+void reject_incorrect_advertised_length(TestHarness& harness)
+{
+    const std::string payload = "pl_barnblitz";
+    const auto encoded = CTFSPacketStreamBuilder::make_ctfs_record(
+        {.payload = std::as_bytes(std::span{payload}),
+         .advertised_length = static_cast<std::uint16_t>(payload.size() + 0x0F)});
+
+    TrafficDecoder decoder;
+
+    decoder.consume(encoded, [&harness](TrafficRecord&&) {
+        CHECK(false);
+    });
+
+    CHECK_THROWS(decoder.finish(), std::runtime_error);
+}
+
+/**
+ * @test Verifies that the TrafficDecoder can be reused.
+ *
+ * @param harness Active harness.
+ */
+void decoder_can_be_reused(TestHarness& harness)
+{
+    const std::string first_pl = "first";
+    const std::string second_pl = "second";
+
+    const auto first = CTFSPacketStreamBuilder::make_ctfs_record(
+        {.sequence_number = 0, .payload = std::as_bytes(std::span{first_pl})});
+
+    const auto second = CTFSPacketStreamBuilder::make_ctfs_record(
+        {.sequence_number = 1, .payload = std::as_bytes(std::span{second_pl})});
+
+    TrafficDecoder decoder;
+    std::vector<CTFSPacket> decoded;
+    const auto callback = [&harness, &decoded](TrafficRecord&& record) {
+        capture_ctfs_packet(harness, decoded, std::move(record));
+    };
+
+    decoder.consume(first, callback);
+    decoder.finish();
+
+    decoder.consume(second, callback);
+    decoder.finish();
+
+    CHECK_EQUALS(decoded.size(), 2U);
+}
+
+/**
+ * @test Verifies that the TrafficDecoder can recover from an invalid packet.
+ *
+ * A single TrafficDecoder must not enter an undefined or unusable state following a bad path. Following an
+ * error/exception, it must discard the involved bytes and be capable of continuing to consume data and produce
+ * TrafficRecord objects.
+ *
+ * @param harness Active harness.
+ */
+void decoder_can_recover(TestHarness& harness)
+{
+    const std::string bad_pl = "bad";
+    const std::string good_pl = "good";
+
+    const auto bad = CTFSPacketStreamBuilder::make_ctfs_record(
+        {.sequence_number = 0xAA,
+         .file_id = 0xBB,
+         .payload = std::as_bytes(std::span{bad_pl}),
+         .checksum = 0xDEADBEEF});
+
+    const auto good = CTFSPacketStreamBuilder::make_ctfs_record(
+        {.sequence_number = 0xCC, .file_id = 0xDD, .payload = std::as_bytes(std::span{good_pl})});
+
+    const auto stream = concatenate(bad, good);
+
+    TrafficDecoder decoder;
+    std::vector<CTFSPacket> decoded;
+    const auto callback = [&harness, &decoded](TrafficRecord&& record) {
+        capture_ctfs_packet(harness, decoded, std::move(record));
+    };
+
+    CHECK_THROWS(decoder.consume(stream, callback), std::runtime_error);
+    CHECK(decoded.empty());
+
+    decoder.consume({}, callback);
+    decoder.finish();
+
+    CHECK_EQUALS(decoded.size(), 1U);
+
+    if (!decoded.empty()) {
+        const auto& packet = decoded[0];
+        CHECK_EQUALS(packet.get_sequence_number(), 0xCC);
+        CHECK_EQUALS(packet.get_file_id(), 0xDD);
+        CHECK(std::ranges::equal(packet.observe_payload(), std::as_bytes(std::span{good_pl})));
+    }
+}
+
+/**
+ * @test Verifies that the TrafficDecoder compaction works across buffer boundaries.
+ *
+ * @param harness Active harness.
+ */
+void compaction_preserves_partial(TestHarness& harness)
+{
+    std::vector large_pl(std::numeric_limits<std::uint16_t>::max(), std::byte{0xAA});
+    std::string final_pl = "pl_badwater";
+
+    const auto large = CTFSPacketStreamBuilder::make_ctfs_record({.sequence_number = 0, .payload = large_pl});
+
+    const auto final = CTFSPacketStreamBuilder::make_ctfs_record(
+        {.sequence_number = 1, .payload = std::as_bytes(std::span{final_pl})});
+
+    const auto stream = concatenate(large, final);
+    const auto split_pos = large.size() + 4;
+
+    TrafficDecoder decoder;
+    std::vector<CTFSPacket> decoded;
+    const auto callback = [&harness, &decoded](TrafficRecord&& record) {
+        capture_ctfs_packet(harness, decoded, std::move(record));
+    };
+
+    decoder.consume(std::span{stream}.first(split_pos), callback);
+    CHECK_EQUALS(decoded.size(), 1U);
+
+    decoder.consume(std::span{stream}.subspan(split_pos), callback);
+    decoder.finish();
+    CHECK_EQUALS(decoded.size(), 2U);
+
+    if (decoded.size() == 2U) {
+        CHECK_EQUALS(decoded[0].get_sequence_number(), 0);
+        CHECK_EQUALS(decoded[1].get_sequence_number(), 1);
+
+        CHECK(std::ranges::equal(decoded[1].observe_payload(), std::as_bytes(std::span{final_pl})));
+    }
+}
+
 } // namespace
 
+/**
+ * Executes all TrafficDecoder tests with a TestHarness.
+ *
+ * @return Zero if all tests passed; non-zero otherwise.
+ */
 int main()
 {
     // clang-format off
@@ -165,7 +433,13 @@ int main()
         { "Partial header is rejected as end-of-stream", reject_partial_header },
         { "Invalid checksum is rejected", reject_bad_checksum },
         { "Packet decodes correctly independent of segmentation", decode_segmented_packets },
-        { "Truncates packets are rejected", reject_nonempty_truncated_packets }
+        { "Truncates packets are rejected", reject_nonempty_truncated_packets },
+        { "Coalesced packets are decoded", decode_coalesced_records },
+        { "Packets with non-zero padding are rejected", reject_nonzero_padding },
+        { "Incorrect advertised lengths are rejected", reject_incorrect_advertised_length },
+        { "Decoder can be reused", decoder_can_be_reused },
+        { "Decoder can recover from bad packets", decoder_can_recover },
+        { "Compaction preserves partial following record", compaction_preserves_partial }
     });
 
     // ReSharper restore CppUseDesignatedInitializers
