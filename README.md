@@ -55,7 +55,7 @@ executable. At runtime, log messages are produced on `stdout` and `stderr` to in
 release configuration, extensive optimisation and hardening takes place to resist analysis and detection; these methods
 are discussed in [_Hardening Considerations_](#hardening-considerations).
 
-### Building the Test Suite
+### Building the Test Suites
 
 To build the _FIRE STORM_ automated unit test suite, use the `debug-tests` or `release-tests` target as desired. The
 test targets are packed with a small executable shim to execute and report the results of all unit tests:
@@ -148,6 +148,13 @@ integration tests can be run with CTest:
 
 ```
 $ ctest --test-dir cmake-build-debug-tests --output-on-failure
+```
+
+Unit or integration tests may be run in isolation by specifying the `Unit` or `Integration` label:
+
+```
+$ ctest --test-dir cmake-build-debug-tests --output-on-failure -L Unit
+$ ctest --test-dir cmake-build-debug-tests --output-on-failure -L Integration
 ```
 
 ### Checksum Errors

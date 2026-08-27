@@ -65,29 +65,72 @@ target_link_libraries(FireStorm PRIVATE FireStormCore ProjectFlags)
 include(CTest)
 
 if (FIRESTORM_BUILD_TESTING)
+    #
     # Configure unit tests.
+    #
 
     add_library(FireStormTestCore
             src/tests/TestHarness.hpp
             src/tests/TestHarness.cpp
     )
 
-    target_link_libraries(FireStormTestCore PRIVATE FireStormCore ProjectFlags)
+    set(TestTrafficDecoder_CASES
+            decode_valid_packet
+            accept_empty_input
+            reject_partial_header
+            reject_bad_checksum
+            decode_segmented_packets
+            reject_nonempty_truncated_packets
+            decode_coalesced_records
+            reject_nonzero_padding
+            reject_incorrect_advertised_length
+            decoder_can_be_reused
+            decoder_can_recover
+            compaction_preserves_partial
+    )
 
+    set(TestPDFWriter_CASES
+            write_single_packet_exactly
+    )
+
+    target_link_libraries(FireStormTestCore PRIVATE FireStormCore ProjectFlags)
     file(GLOB UNIT_TESTS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/tests/unit/*.cpp")
+
+    # Each CPP file in src/tests/unit denotes a fixture of unit tests. An executable CMake target is produced for each
+    # fixture. A fixture is composed of individual unit test cases, which are defined by the CMake list variable
+    # Test{FIXTURE}_CASES.
+    #
+    # Each test case is registered with CTest under the name Unit.{FIXTURE}.{CASE} and associated with the labels
+    # "Unit" and {FIXTURE}.
 
     foreach (TEST_PATH IN LISTS UNIT_TESTS)
         cmake_path(GET TEST_PATH STEM TEST_NAME)
         add_executable(${TEST_NAME} ${TEST_PATH})
         target_link_libraries(${TEST_NAME} PRIVATE FireStormTestCore)
 
-        add_test(
-                NAME ${TEST_NAME}
-                COMMAND ${TEST_NAME}
-        )
+        string(REGEX REPLACE "^Test" "" FIXTURE_NAME "${TEST_NAME}")
+        foreach (CASE_NAME IN LISTS "${TEST_NAME}_CASES")
+            set(CTEST_NAME "Unit.${FIXTURE_NAME}.${CASE_NAME}")
+
+            add_test(
+                    NAME "${CTEST_NAME}"
+                    COMMAND
+                    "$<TARGET_FILE:${TEST_NAME}>"
+                    "--test"
+                    "${CASE_NAME}"
+            )
+
+            set_tests_properties(
+                    "${CTEST_NAME}"
+                    PROPERTIES
+                    LABELS "Unit;${FIXTURE_NAME}"
+            )
+        endforeach ()
     endforeach ()
 
-    # Configure CoreTech integration tests.
+    #
+    # Configure CoreTech integration tests using the Python helper.
+    #
 
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
@@ -104,8 +147,10 @@ if (FIRESTORM_BUILD_TESTING)
                 ${ARGN}
         )
 
+        set(CTEST_NAME "Integration.${TEST_NAME}")
+
         add_test(
-                NAME "${TEST_NAME}Integration"
+                NAME "${CTEST_NAME}"
                 COMMAND
                 "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/coretech/run_integration.py"
@@ -117,9 +162,10 @@ if (FIRESTORM_BUILD_TESTING)
         )
 
         set_tests_properties(
-                "${TEST_NAME}Integration"
+                "Integration.${TEST_NAME}"
                 PROPERTIES
                 TIMEOUT 60
+                LABELS "Integration"
         )
     endfunction()
 
