@@ -74,22 +74,16 @@ if (FIRESTORM_BUILD_TESTING)
 
     target_link_libraries(FireStormTestCore PRIVATE FireStormCore ProjectFlags)
 
-    set(UNIT_TEST_EXECUTABLES Decoder)
+    file(GLOB UNIT_TESTS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/tests/unit/*.cpp")
 
-    foreach (TEST_EXE IN LISTS UNIT_TEST_EXECUTABLES)
-        set(TEST_EXE_NAME "Test${TEST_EXE}")
-        add_executable(${TEST_EXE_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/src/tests/unit/${TEST_EXE_NAME}.cpp")
-        target_link_libraries(${TEST_EXE_NAME} PRIVATE FireStormTestCore)
+    foreach (TEST_PATH IN LISTS UNIT_TESTS)
+        cmake_path(GET TEST_PATH STEM TEST_NAME)
+        add_executable(${TEST_NAME} ${TEST_PATH})
+        target_link_libraries(${TEST_NAME} PRIVATE FireStormTestCore)
 
         add_test(
-                NAME ${TEST_EXE}
-                COMMAND ${TEST_EXE_NAME}
-        )
-
-        set_tests_properties(
-                ${TEST_EXE}
-                PROPERTIES
-                TIMEOUT 5
+                NAME ${TEST_NAME}
+                COMMAND ${TEST_NAME}
         )
     endforeach ()
 

@@ -49,7 +49,8 @@ public:
      * Produce the standard binary representation of a complete CTFS record.
      *
      * The function writes the CTFS header, appends the supplied payload, and encodes the reference checksum unless
-     * provided in @p options.
+     * provided in @p options. "Magic numbers" are intentionally used liberally in this reference implementation, since
+     * it must be trivially verifiable against the CTFS packet specification.
      *
      * @param options Options describing the packet to construct.
      *

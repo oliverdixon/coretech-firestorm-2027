@@ -1,7 +1,7 @@
 /**
  * @file
  *
- * TestDecoder specification
+ * TestTrafficDecoder specification
  *
  * @author Oliver Dixon
  * @date 2026-08-26
