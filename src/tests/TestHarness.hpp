@@ -45,6 +45,7 @@ public:
          */
         using TestFunction = void (*)(TestHarness&);
 
+        std::string id;        /**< Internal stable test name. */
         std::string name;      /**< Human-readable test name. */
         TestFunction function; /**< Function implementing the test case. */
     };
@@ -150,13 +151,21 @@ public:
     /**
      * Executes a suite of test cases.
      *
-     * Test cases are executed sequentially in the order supplied. An exception escaping a test function is converted
-     * into a failed assertion, after which execution continues with the next test case.
+     * If the "--test" command-line parameter is omitted, test cases are executed sequentially in the order supplied.
+     * If "--test" is included, followed by a single test ID, only the test with the matching ID is executed. For ease
+     * of use, the @p argc and @p argv can be passed directly as provided by the shell; that is, @c argv[0] is expected
+     * to contain the program name.
      *
+     * An exception escaping a test function is converted into a failed assertion, after which execution continues with
+     * the next test case.
+     *
+     * @param argc Number of arguments, passed from the shell.
+     * @param argv Argument vector, passed from the shell.
      * @param test_cases Test cases to execute.
+     *
      * @return @c EXIT_SUCCESS if every test case passes; @c EXIT_FAILURE otherwise.
      */
-    static int run(std::initializer_list<TestCase> test_cases);
+    static int run(int argc, const char* const* argv, std::initializer_list<TestCase> test_cases);
 
 private:
     /**

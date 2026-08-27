@@ -9,7 +9,10 @@
 
 #include "TestHarness.hpp"
 
+#include <functional>
 #include <iostream>
+#include <ranges>
+#include <regex>
 
 namespace firestorm::test
 {
@@ -21,12 +24,30 @@ void TestHarness::check(const bool condition, const std::string_view expression,
         report_failure(expression, location);
 }
 
-int TestHarness::run(const std::initializer_list<TestCase> test_cases)
+int TestHarness::run(const int argc, const char* const* const argv, const std::initializer_list<TestCase> test_cases)
 {
     TestHarness harness;
 
-    for (const auto& [name, function] : test_cases) {
-        std::println(std::cout, "[ RUN    ] {}", name);
+    const auto args =
+        std::span{argv, static_cast<std::size_t>(argc)} | std::views::transform([](const char* const arg) noexcept {
+            return std::string_view{arg};
+        });
+
+    std::function<bool(const TestCase&)> predicate;
+
+    if (args.size() >= 3 && std::ranges::equal(args[1], std::string_view{"--test"})) {
+        predicate = [match = args[2]](const TestCase& test_case) {
+            return std::ranges::equal(test_case.id, match);
+        };
+    } else {
+        std::cout << "No test specification given; running all tests in fixture." << std::endl;
+        predicate = []([[maybe_unused]] const TestCase&) noexcept {
+            return true;
+        };
+    }
+
+    for (const auto& [id, name, function] : test_cases | std::views::filter(predicate)) {
+        std::println(std::cout, "[ RUN    ] {}: {}", id, name);
         const auto failures_before = harness.failure_count;
 
         try {

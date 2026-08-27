@@ -422,26 +422,72 @@ void compaction_preserves_partial(TestHarness& harness)
  *
  * @return Zero if all tests passed; non-zero otherwise.
  */
-int main()
+int main(const int argc, const char* const* const argv)
 {
     // clang-format off
-    // ReSharper disable CppUseDesignatedInitializers
 
-    return TestHarness::run({
-        { "Complete packet produces exactly one valid record",decode_valid_packet },
-        { "Empty input is accepted",accept_empty_input },
-        { "Partial header is rejected as end-of-stream", reject_partial_header },
-        { "Invalid checksum is rejected", reject_bad_checksum },
-        { "Packet decodes correctly independent of segmentation", decode_segmented_packets },
-        { "Truncates packets are rejected", reject_nonempty_truncated_packets },
-        { "Coalesced packets are decoded", decode_coalesced_records },
-        { "Packets with non-zero padding are rejected", reject_nonzero_padding },
-        { "Incorrect advertised lengths are rejected", reject_incorrect_advertised_length },
-        { "Decoder can be reused", decoder_can_be_reused },
-        { "Decoder can recover from bad packets", decoder_can_recover },
-        { "Compaction preserves partial following record", compaction_preserves_partial }
+    return TestHarness::run(argc, argv, {
+        {
+            .id = "decode_valid_packet",
+            .name = "Complete packet produces exactly one valid record",
+            .function = decode_valid_packet
+        },
+        {
+            .id = "accept_empty_input",
+            .name = "Empty input is accepted",
+            .function = accept_empty_input
+        },
+        {
+            .id = "reject_partial_header",
+            .name = "Partial header is rejected as end-of-stream",
+            .function = reject_partial_header
+        },
+        {
+            .id = "reject_bad_checksum",
+            .name = "Invalid checksum is rejected",
+            .function = reject_bad_checksum
+        },
+        {
+            .id = "decode_segmented_packets",
+            .name = "Packet decodes correctly independent of segmentation",
+            .function = decode_segmented_packets
+        },
+        {
+            .id = "reject_nonempty_truncated_packets",
+            .name = "Truncated packets are rejected",
+            .function = reject_nonempty_truncated_packets
+        },
+        {
+            .id = "decode_coalesced_records",
+            .name = "Coalesced packets are decoded",
+            .function = decode_coalesced_records
+        },
+        {
+            .id = "reject_nonzero_padding",
+            .name = "Packets with non-zero padding are rejected",
+            .function = reject_nonzero_padding
+        },
+        {
+            .id = "reject_incorrect_advertised_length",
+            .name = "Incorrect advertised lengths are rejected",
+            .function = reject_incorrect_advertised_length
+        },
+        {
+            .id = "decoder_can_be_reused",
+            .name = "Decoder can be reused",
+            .function = decoder_can_be_reused
+        },
+        {
+            .id = "decoder_can_recover",
+            .name = "Decoder can recover from bad packets",
+            .function = decoder_can_recover
+        },
+        {
+            .id = "compaction_preserves_partial",
+            .name = "Compaction preserves partial following record",
+            .function = compaction_preserves_partial
+        }
     });
 
-    // ReSharper restore CppUseDesignatedInitializers
     // clang-format on
 }
