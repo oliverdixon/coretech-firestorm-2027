@@ -27,6 +27,7 @@ int TestHarness::run(const std::initializer_list<TestCase> test_cases)
 
     for (const auto& [name, function] : test_cases) {
         std::println(std::cout, "[ RUN    ] {}", name);
+        const auto failures_before = harness.failure_count;
 
         try {
             function(harness);
@@ -36,7 +37,7 @@ int TestHarness::run(const std::initializer_list<TestCase> test_cases)
             harness.report_failure("Unhandled non-standard exception.", std::source_location::current());
         }
 
-        if (harness.failure_count == 0)
+        if (harness.failure_count == failures_before)
             std::println(std::cout, "[ OK     ] {}", name);
         else
             std::println(std::cout, "[ FAILED ] {}", name);

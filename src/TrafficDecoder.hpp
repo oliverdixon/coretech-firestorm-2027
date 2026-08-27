@@ -59,8 +59,13 @@ concept TrafficDecoderCallback = std::invocable<F&, TrafficRecord&&>;
 class TrafficDecoder
 {
 public:
-    TrafficDecoder() = default;
-    explicit TrafficDecoder(bool reject_bad_checksums);
+
+    /**
+     * Create a TrafficDecoder.
+     *
+     * @param reject_bad_checksums Should CTFS packets with invalid checksums cause an exception?
+     */
+    explicit TrafficDecoder(bool reject_bad_checksums = true);
 
     /**
      * Processes a chunk of input bytes.
@@ -161,7 +166,7 @@ private:
 
     std::vector<std::byte> buffer;
     std::size_t consumed = 0;
-    bool reject_bad_checksums = false;
+    bool reject_bad_checksums;
 };
 
 void TrafficDecoder::consume(const std::span<const std::byte> input, TrafficDecoderCallback auto&& callback)
