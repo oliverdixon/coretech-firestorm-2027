@@ -128,6 +128,7 @@ private:
      *
      * @return True if a complete CTFS packet was consumed; false otherwise.
      *
+     * @throws std::runtime_error The CTFS packet had non-zero padding bytes.
      * @throws std::runtime_error The CTFS packet encoded a bad checksum, and the TrafficDecoder is configured to
      * explicitly reject malformed checksums.
      */
@@ -231,6 +232,16 @@ bool TrafficDecoder::consume_ctfs_record(const std::span<const std::byte> availa
         .file_id = std::to_integer<std::uint8_t>(record_bytes[8]),
         .received_checksum = decode_big_endian(record_bytes.subspan<9, 4>())
     };
+
+    // If the padding is non-zero, it's a definite error.
+    const auto padding = std::to_integer<std::uint32_t>(packet_view.padding[0]) << 16 |
+                         std::to_integer<std::uint16_t>(packet_view.padding[1]) << 8 |
+                         std::to_integer<std::uint8_t>(packet_view.padding[2]);
+    if (padding != 0)
+        throw std::runtime_error(std::format("Refused CTFS packet (F#{}, S#{}) due to non-zero padding: got {:#X}.",
+                                             packet_view.file_id,
+                                             packet_view.sequence_number,
+                                             padding));
 
     // Verify the checksum against the configured bad-checksum behaviour.
     const auto expected_cs = packet_view.compute_checksum();
