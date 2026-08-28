@@ -99,10 +99,10 @@ private:
      * CTFS frame marker.
      */
     static constexpr std::array magic{
-        std::byte{0x43},  // 'C',
-        std::byte{0x54},  // 'T',
-        std::byte{0x46},  // 'F'
-        std::byte{0x53},  // 'S'
+        std::byte{0x43}, // 'C',
+        std::byte{0x54}, // 'T',
+        std::byte{0x46}, // 'F'
+        std::byte{0x53}, // 'S'
     };
 
     /**
@@ -172,9 +172,9 @@ private:
      */
     void compact();
 
-    std::vector<std::byte> buffer;
-    std::size_t consumed = 0;
-    bool reject_bad_checksums;
+    std::vector<std::byte> buffer; /**< Decoder's buffer of raw encoded data. */
+    std::size_t consumed = 0;      /**< Offset into @ref buffer to indicate the read head. */
+    bool reject_bad_checksums;     /**< Should bad checksums cause an exception? */
 };
 
 void TrafficDecoder::consume(const std::span<const std::byte> input, TrafficDecoderCallback auto&& callback)
@@ -235,7 +235,7 @@ bool TrafficDecoder::consume_ctfs_record(const std::span<const std::byte> availa
         .padding = record_bytes.subspan<13, 3>(),
         .payload = record_bytes.subspan(header_size, data_length),
         .sequence_number = sequence_number,
-        .data_length = data_length,
+        .received_data_length = data_length,
         .file_id = std::to_integer<std::uint8_t>(record_bytes[8]),
         .received_checksum = decode_big_endian(record_bytes.subspan<9, 4>()),
     };

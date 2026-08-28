@@ -130,9 +130,9 @@ private:
     std::size_t frame_count = 0;     /**< Total number of framed routed into a sink. */
     std::size_t malicious_count = 0; /**< Total number of frames marked as malicious. */
 
-    AsyncFrameSink tcp_sink;         /**< Primary sink for passthrough and TCP-classified traffic. */
-    AsyncFrameSink monitor_sink;     /**< Sink for monitored traffic. */
-    AsyncFrameSink udp_sink;         /**< Sink for UDP-classified traffic. */
+    AsyncFrameSink tcp_sink;     /**< Primary sink for passthrough and TCP-classified traffic. */
+    AsyncFrameSink monitor_sink; /**< Sink for monitored traffic. */
+    AsyncFrameSink udp_sink;     /**< Sink for UDP-classified traffic. */
 };
 
 } // namespace firestorm

@@ -38,10 +38,10 @@ struct CTFSPacketView
     /** Packet payload excluding the CTFS header. */
     std::span<const std::byte> payload;
 
-    std::uint16_t sequence_number;
-    std::uint16_t data_length;
-    std::uint8_t file_id;
-    std::uint32_t received_checksum;
+    std::uint16_t sequence_number;      /**< Sequence number of the viewed CTFS payload. */
+    std::uint16_t received_data_length; /**< Advertised length of the viewed CTFS payload. */
+    std::uint8_t file_id;               /**< File ID of the viewed CTFS payload. */
+    std::uint32_t received_checksum;    /**< Advertised checksum of the viewed CTFS payload. */
 
     /**
      * Computes the checksum of the packet.

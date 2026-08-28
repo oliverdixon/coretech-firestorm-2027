@@ -25,8 +25,8 @@ std::uint32_t CTFSPacketView::compute_checksum() const noexcept
     };
 
     add_word(ctfs);                                                             // Word 1: "CTFS"
-    add_word(static_cast<std::uint32_t>(sequence_number) << 16U | data_length); // Word 2: Sequence No. and Data Length
-    add_word(static_cast<std::uint32_t>(file_id) << 24U | ctfs >> 8U); // Word 3: File ID and "CTF" (CTFS head)
+    add_word(static_cast<std::uint32_t>(sequence_number) << 16U | received_data_length); // Word 2: Sequence No. and Data Length
+    add_word(static_cast<std::uint32_t>(file_id) << 24U | ctfs >> 8U);          // Word 3: File ID and "CTF" (CTFS head)
     add_word(ctfs << 24U | std::to_integer<std::uint32_t>(padding[0]) << 16U |
              std::to_integer<std::uint32_t>(padding[1]) << 8U |
              std::to_integer<std::uint32_t>(padding[2])); // Word 4: "S" (CTFS tail) and padding

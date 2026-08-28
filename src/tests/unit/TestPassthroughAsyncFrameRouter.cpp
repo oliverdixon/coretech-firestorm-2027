@@ -34,7 +34,7 @@ void routes_single_frame(TestHarness& harness)
     router.drain_and_report();
 
     receiver.wait();
-    CHECK(std::ranges::equal(receiver.observe_received_bytes(), frame));
+    CHECK(std::ranges::equal(receiver.try_observe_received_bytes(), frame));
 }
 
 /**
@@ -58,7 +58,7 @@ void routes_frames_in_order(TestHarness& harness)
     router.drain_and_report();
 
     receiver.wait();
-    CHECK(std::ranges::equal(receiver.observe_received_bytes(),
+    CHECK(std::ranges::equal(receiver.try_observe_received_bytes(),
                              TestHarness::concatenate(first_frame, second_frame, third_frame)));
 }
 
@@ -114,14 +114,14 @@ void reuse_after_drain(TestHarness& harness)
     router.route(SampleFrameBuilders::make_frame_view(first_frame));
     router.drain_and_report();
     first_receiver.wait();
-    CHECK(std::ranges::equal(first_receiver.observe_received_bytes(), first_frame));
+    CHECK(std::ranges::equal(first_receiver.try_observe_received_bytes(), first_frame));
 
     LoopbackTCPReceiver second_receiver{first_receiver.get_assigned_port()};
     constexpr auto second_frame = SampleFrameBuilders::make_frame_payload(std::byte{0x22});
     router.route(SampleFrameBuilders::make_frame_view(second_frame));
     router.drain_and_report();
     second_receiver.wait();
-    CHECK(std::ranges::equal(second_receiver.observe_received_bytes(), second_frame));
+    CHECK(std::ranges::equal(second_receiver.try_observe_received_bytes(), second_frame));
 }
 
 } // namespace

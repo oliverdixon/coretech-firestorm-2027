@@ -69,8 +69,8 @@ public:
     CTFSPacket(const CTFSPacket&) = delete;
     CTFSPacket& operator=(const CTFSPacket&) = delete;
 
-    CTFSPacket(CTFSPacket&&) noexcept = default;
-    CTFSPacket& operator=(CTFSPacket&& other) noexcept;
+    CTFSPacket(CTFSPacket&&) noexcept = default; /**< Move a CTFSPacket. */
+    CTFSPacket& operator=(CTFSPacket&& other) noexcept; /**< Move-assign a CTFSPacket. */
 
     /**
      * Retrieves the packet sequence number.
@@ -91,9 +91,9 @@ public:
     [[nodiscard]] const std::vector<std::byte>& observe_payload() const noexcept;
 
 private:
-    std::uint16_t sequence_number;
-    std::uint8_t file_id;
-    std::vector<std::byte> payload;
+    std::uint16_t sequence_number;  /**< Sequence number of packet within a file. */
+    std::uint8_t file_id;           /**< ID of the PDF document to which the packet belongs. */
+    std::vector<std::byte> payload; /**< Owning payload data excluding the headers. */
 };
 
 } // namespace firestorm

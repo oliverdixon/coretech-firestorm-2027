@@ -38,7 +38,7 @@ void ClassifiedAsyncFrameRouter::route(const EthernetFrameView& view)
     const auto monitored = has_monitored_destination(view.dst_mac_prefix);
     const auto malicious = has_malicious_source(view.src_mac_prefix);
 
-    AsyncFrameSink* primary_sink = nullptr;  // Primary sink, if any, to which the frame should be routed.
+    AsyncFrameSink* primary_sink = nullptr; // Primary sink, if any, to which the frame should be routed.
 
     if (malicious)
         ++malicious_count;

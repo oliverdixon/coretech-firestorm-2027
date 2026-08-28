@@ -3,7 +3,6 @@ Language: Cpp
 BasedOnStyle: LLVM
 Standard: Latest
 
-# General
 IndentWidth: 4
 TabWidth: 4
 UseTab: Never
@@ -111,10 +110,10 @@ InsertTrailingCommas: None
 AlignConsecutiveAssignments: None
 AlignConsecutiveDeclarations: None
 
-# Preserve manually aligned trailing comments, particularly Doxygen ///< comments.
+# Align consecutive ///< and /**< ... */ documentation comments.
 AlignTrailingComments:
-  Kind: Leave
-  OverEmptyLines: 1
+  Kind: Always
+  OverEmptyLines: 0
 
 # Switch statements
 IndentCaseLabels: true

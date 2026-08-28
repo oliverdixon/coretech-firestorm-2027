@@ -38,10 +38,10 @@ public:
      */
     struct Options
     {
-        std::uint16_t sequence_number = 0;              /**< Sequence number for the packet header. */
-        std::uint8_t file_id = 0;                       /**< File ID for the packet header. */
-        std::span<const std::byte> payload;             /**< Non-owning view into the payload data. */
-        std::array<std::byte, 3> padding{};             /**< Zero padding bytes. */
+        std::uint16_t sequence_number = 0;  /**< Sequence number for the packet header. */
+        std::uint8_t file_id = 0;           /**< File ID for the packet header. */
+        std::span<const std::byte> payload; /**< Non-owning view into the payload data. */
+        std::array<std::byte, 3> padding{}; /**< Zero padding bytes. */
 
         std::optional<std::uint16_t> advertised_length; /**< Advertised length; computed unless provided. */
         std::optional<std::uint32_t> checksum;          /**< Checksum; computed unless provided. */

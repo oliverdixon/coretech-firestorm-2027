@@ -172,15 +172,15 @@ private:
     const std::uint16_t port;                 /**< Port number of the endpoint. */
     const std::size_t maximum_buffered_bytes; /**< Maximum number of total bytes resident in the buffer. */
 
-    Statistics statistics;                    /**< Connection metadata. */
+    Statistics statistics; /**< Connection metadata. */
 
     std::mutex shared_state_mutex;            /**< Synchronisation primitive to protect @ref shared_state. */
     std::condition_variable frame_available;  /**< Indicator for new frames present on the queue. */
     std::condition_variable buffer_available; /**< Indicator for the frame buffer having capacity for writing. */
 
-    SharedState shared_state;                 /**< State shared between main thread and worker. */
-    std::optional<TCPConnection> transport;   /**< Worker-controlled endpoint. */
-    std::jthread worker;                      /**< Thread to manage TCP communication. */
+    SharedState shared_state;               /**< State shared between main thread and worker. */
+    std::optional<TCPConnection> transport; /**< Worker-controlled endpoint. */
+    std::jthread worker;                    /**< Thread to manage TCP communication. */
 };
 
 } // namespace firestorm

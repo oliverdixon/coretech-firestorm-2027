@@ -28,7 +28,7 @@ LoopbackTCPReceiver::LoopbackTCPReceiver(const std::uint16_t requested_port)
         receive(stop_token, ready, requested_port);
     });
 
-    assigned_port = port_future.get();  // Wait for the future to be satisfied.
+    assigned_port = port_future.get(); // Wait for the future to be satisfied.
 }
 
 LoopbackTCPReceiver::~LoopbackTCPReceiver() noexcept
@@ -55,7 +55,7 @@ std::uint16_t LoopbackTCPReceiver::get_assigned_port() const noexcept
     return assigned_port;
 }
 
-std::span<const std::byte> LoopbackTCPReceiver::observe_received_bytes() const
+std::span<const std::byte> LoopbackTCPReceiver::try_observe_received_bytes() const
 {
     if (!wait_completed)
         throw std::logic_error("The receiver is not ready to be observed.");
@@ -65,7 +65,7 @@ std::span<const std::byte> LoopbackTCPReceiver::observe_received_bytes() const
 
 void LoopbackTCPReceiver::receive(const std::stop_token& stop_token,
                                   std::shared_ptr<std::promise<std::uint16_t>> ready,
-                                  const uint16_t requested_port)
+                                  const uint16_t requested_port) noexcept
 {
     bool listening_announced = false;
 

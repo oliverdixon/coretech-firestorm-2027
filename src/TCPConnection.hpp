@@ -67,8 +67,8 @@ public:
     TCPConnection(const TCPConnection&) = delete;
     TCPConnection& operator=(const TCPConnection&) = delete;
 
-    TCPConnection(TCPConnection&& other) noexcept;
-    TCPConnection& operator=(TCPConnection&& other) noexcept;
+    TCPConnection(TCPConnection&& other) noexcept; /**< Move a TCPConnection. */
+    TCPConnection& operator=(TCPConnection&& other) noexcept; /**< Move-assign a TCPConnection. */
 
     /**
      * Reads available bytes over the TCP socket into the given storage buffer.

@@ -6,5 +6,4 @@
 
 ## Trivial
 
-* Complete Doxygen except deleted member functions.
 * Complete README (regenerate sample invocations).

@@ -69,9 +69,9 @@ void verify_routing(TestHarness& harness,
     monitor_receiver.wait();
     udp_receiver.wait();
 
-    CHECK(std::ranges::equal(tcp_receiver.observe_received_bytes(), expected_tcp));
-    CHECK(std::ranges::equal(monitor_receiver.observe_received_bytes(), expected_monitor));
-    CHECK(std::ranges::equal(udp_receiver.observe_received_bytes(), expected_udp));
+    CHECK(std::ranges::equal(tcp_receiver.try_observe_received_bytes(), expected_tcp));
+    CHECK(std::ranges::equal(monitor_receiver.try_observe_received_bytes(), expected_monitor));
+    CHECK(std::ranges::equal(udp_receiver.try_observe_received_bytes(), expected_udp));
 }
 
 /**

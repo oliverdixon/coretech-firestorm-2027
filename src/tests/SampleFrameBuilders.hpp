@@ -31,7 +31,14 @@ public:
     using MACPrefix = std::array<std::byte, 3>;
 
 private:
+    /**
+     * Default MAC source prefix (chosen to be non-malicious)
+     */
     static constexpr MACPrefix default_source_mac = {std::byte{0x10}, std::byte{0x20}, std::byte{0x30}};
+
+    /**
+     * Default MAC destination prefix (chosen to be non-monitored)
+     */
     static constexpr MACPrefix default_destination_mac = {std::byte{0x40}, std::byte{0x50}, std::byte{0x60}};
 
 public:
@@ -83,8 +90,8 @@ public:
         frame[12] = std::byte{0x08};
         frame[13] = std::byte{0x00};
 
-        frame[14] = std::byte{0x45};                // IPv4, 20-byte header
-        frame[23] = std::byte{transport_protocol};  // Transport protocol
+        frame[14] = std::byte{0x45};               // IPv4, 20-byte header
+        frame[23] = std::byte{transport_protocol}; // Transport protocol
 
         // Include a NUL in the payload so exact binary forwarding is exercised
         frame[40] = std::byte{0x00};
