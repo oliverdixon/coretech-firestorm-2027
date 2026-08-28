@@ -8,6 +8,7 @@
 #include "Logger.hpp"
 
 #include <iostream>
+#include <string>
 #include <syncstream>
 #include <utility>
 

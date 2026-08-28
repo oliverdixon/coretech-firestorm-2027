@@ -101,12 +101,14 @@ public:
      */
     static constexpr EthernetFrameView make_frame_view(const std::span<const std::byte, 64> payload) noexcept
     {
-        return {.bytes = payload,
-                .src_mac_prefix = payload.subspan<6, 3>(),
-                .dst_mac_prefix = payload.first<3>(),
-                .ip_header = payload.subspan<14, 20>(),
-                .ip_payload = payload.subspan<34>(),
-                .ip_protocol = std::to_integer<std::uint8_t>(payload[23])};
+        return {
+            .bytes = payload,
+            .src_mac_prefix = payload.subspan<6, 3>(),
+            .dst_mac_prefix = payload.first<3>(),
+            .ip_header = payload.subspan<14, 20>(),
+            .ip_payload = payload.subspan<34>(),
+            .ip_protocol = std::to_integer<std::uint8_t>(payload[23]),
+        };
     }
 };
 

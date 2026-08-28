@@ -11,6 +11,12 @@
 
 #include <netinet/in.h>
 
+#include <exception>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "EthernetFrameView.hpp"
 #include "Logger.hpp"
 
@@ -57,7 +63,7 @@ void ClassifiedAsyncFrameRouter::route(const EthernetFrameView& view)
     if (monitored)
         monitor_sink.enqueue(frame);
 
-    if (primary_sink)
+    if (primary_sink != nullptr)
         primary_sink->enqueue(std::move(frame));
 
     ++frame_count;

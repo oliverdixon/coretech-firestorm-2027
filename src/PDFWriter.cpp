@@ -9,8 +9,16 @@
 
 #include "PDFWriter.hpp"
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <fstream>
+#include <ranges>
+#include <stdexcept>
+#include <vector>
 
+#include "CTFSPacket.hpp"
 #include "Logger.hpp"
 
 namespace firestorm
@@ -23,7 +31,7 @@ void PDFWriter::write_pdf(std::ostream& output, const std::span<const CTFSPacket
     std::int32_t last_seq_num = -1;
 
     for (const auto& packet : packets)
-        if (packet.get_sequence_number() == last_seq_num)
+        if (packet.get_sequence_number() == last_seq_num) // NOLINT(*-use-integer-sign-comparison)
             LOG_F_WARNING("Ignoring CTFS packet with File ID {} and duplicated Sequence Number {}.",
                           packet.get_file_id(),
                           last_seq_num);

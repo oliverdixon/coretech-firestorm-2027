@@ -9,11 +9,14 @@
 
 #include "TCPConnection.hpp"
 
+#include <arpa/inet.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <cerrno>
 #include <stdexcept>
 #include <string>
 #include <system_error>

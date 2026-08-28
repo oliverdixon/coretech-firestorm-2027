@@ -10,6 +10,8 @@
 #ifndef FIRESTORM_CTFSPACKET_HPP
 #define FIRESTORM_CTFSPACKET_HPP
 
+#include <compare>
+#include <cstddef>
 #include <cstdint>
 #include <span>
 #include <vector>
@@ -41,6 +43,8 @@ public:
      * @throws std::bad_alloc Storage for the payload cannot be allocated.
      */
     CTFSPacket(std::uint16_t sequence_number, std::uint8_t file_id, std::span<const std::byte> payload);
+
+    ~CTFSPacket() noexcept;
 
     /**
      * Compares two packets by sequence number.

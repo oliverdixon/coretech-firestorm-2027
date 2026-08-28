@@ -72,12 +72,14 @@ void reject_empty_frames(TestHarness& harness)
     PassthroughAsyncFrameRouter router;
 
     static constexpr std::array<std::byte, 3> empty_prefix{};
-    constexpr EthernetFrameView empty{.bytes = {},
-                                      .src_mac_prefix = empty_prefix,
-                                      .dst_mac_prefix = empty_prefix,
-                                      .ip_header = {},
-                                      .ip_payload = {},
-                                      .ip_protocol = 0};
+    constexpr EthernetFrameView empty{
+        .bytes = {},
+        .src_mac_prefix = empty_prefix,
+        .dst_mac_prefix = empty_prefix,
+        .ip_header = {},
+        .ip_payload = {},
+        .ip_protocol = 0,
+    };
 
     CHECK_THROWS(router.route(empty), std::invalid_argument);
     router.drain_and_report();
@@ -142,27 +144,27 @@ int main(const int argc, const char* const* const argv)
         {
             .id = "routes_single_frame",
             .name = "Routes a single frame correctly",
-            .function = routes_single_frame
+            .function = routes_single_frame,
         },
         {
             .id = "routes_frames_in_order",
             .name = "Routes frames in order of submission",
-            .function = routes_frames_in_order
+            .function = routes_frames_in_order,
         },
         {
             .id = "reject_empty_frames",
             .name = "Routes rejects empty frames",
-            .function = reject_empty_frames
+            .function = reject_empty_frames,
         },
         {
             .id = "drains_without_frames",
             .name = "Draining an unused router completes successfully",
-            .function = drains_without_frames
+            .function = drains_without_frames,
         },
         {
             .id = "reuse_after_drain",
             .name = "Router can be reused following a full drain",
-            .function = reuse_after_drain
+            .function = reuse_after_drain,
         },
     });
 

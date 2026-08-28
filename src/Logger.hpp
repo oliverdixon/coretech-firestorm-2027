@@ -8,9 +8,11 @@
 #ifndef FIRESTORM_LOGGER_HPP
 #define FIRESTORM_LOGGER_HPP
 
+#include <cstdint>
 #include <format>
 #include <source_location>
 #include <string_view>
+#include <utility>
 
 namespace firestorm
 {
@@ -24,10 +26,10 @@ public:
     /**
      * Indicates the level of importance of a logged message.
      */
-    enum class Level
+    enum class Level : std::uint8_t
     {
         Info,
-        Warning
+        Warning,
     };
 
     /**

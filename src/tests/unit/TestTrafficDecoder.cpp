@@ -74,7 +74,7 @@ void decode_valid_packet(TestHarness& harness)
  *
  * @param harness Active harness.
  */
-void accept_empty_input(test::TestHarness& harness)
+void accept_empty_input(TestHarness& harness)
 {
     TrafficDecoder decoder;
 
@@ -250,7 +250,7 @@ void reject_nonzero_padding(TestHarness& harness)
 
     TrafficDecoder decoder;
     CHECK_THROWS(decoder.consume(encoded,
-                                 [](TrafficRecord&&) {
+                                 []([[maybe_unused]] TrafficRecord&&) {
                                  }),
                  std::runtime_error);
 }
@@ -412,52 +412,52 @@ int main(const int argc, const char* const* const argv)
         {
             .id = "decode_valid_packet",
             .name = "Complete packet produces exactly one valid record",
-            .function = decode_valid_packet
+            .function = decode_valid_packet,
         },
         {
             .id = "accept_empty_input",
             .name = "Empty input is accepted",
-            .function = accept_empty_input
+            .function = accept_empty_input,
         },
         {
             .id = "reject_partial_header",
             .name = "Partial header is rejected as end-of-stream",
-            .function = reject_partial_header
+            .function = reject_partial_header,
         },
         {
             .id = "reject_bad_checksum",
             .name = "Invalid checksum is rejected",
-            .function = reject_bad_checksum
+            .function = reject_bad_checksum,
         },
         {
             .id = "decode_segmented_packets",
             .name = "Packet decodes correctly independent of segmentation",
-            .function = decode_segmented_packets
+            .function = decode_segmented_packets,
         },
         {
             .id = "reject_nonempty_truncated_packets",
             .name = "Truncated packets are rejected",
-            .function = reject_nonempty_truncated_packets
+            .function = reject_nonempty_truncated_packets,
         },
         {
             .id = "decode_coalesced_records",
             .name = "Coalesced packets are decoded",
-            .function = decode_coalesced_records
+            .function = decode_coalesced_records,
         },
         {
             .id = "reject_nonzero_padding",
             .name = "Packets with non-zero padding are rejected",
-            .function = reject_nonzero_padding
+            .function = reject_nonzero_padding,
         },
         {
             .id = "reject_incorrect_advertised_length",
             .name = "Incorrect advertised lengths are rejected",
-            .function = reject_incorrect_advertised_length
+            .function = reject_incorrect_advertised_length,
         },
         {
             .id = "decoder_can_be_reused",
             .name = "Decoder can be reused",
-            .function = decoder_can_be_reused
+            .function = decoder_can_be_reused,
         },
         {
             .id = "decoder_can_recover",
@@ -467,7 +467,7 @@ int main(const int argc, const char* const* const argv)
         {
             .id = "compaction_preserves_partial",
             .name = "Compaction preserves partial following record",
-            .function = compaction_preserves_partial
+            .function = compaction_preserves_partial,
         }
     });
 

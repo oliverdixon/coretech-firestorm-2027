@@ -10,6 +10,7 @@
 #ifndef FIRESTORM_TCPCONNECTION_HPP
 #define FIRESTORM_TCPCONNECTION_HPP
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <span>

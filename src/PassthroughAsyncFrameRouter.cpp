@@ -9,6 +9,11 @@
 
 #include "PassthroughAsyncFrameRouter.hpp"
 
+#include <memory>
+#include <span>
+#include <string>
+#include <vector>
+
 #include "EthernetFrameView.hpp"
 #include "Logger.hpp"
 

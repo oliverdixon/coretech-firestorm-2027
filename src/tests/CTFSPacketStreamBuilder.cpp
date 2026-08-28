@@ -9,6 +9,7 @@
 
 #include "CTFSPacketStreamBuilder.hpp"
 
+#include <limits>
 #include <stdexcept>
 
 std::vector<std::byte> firestorm::test::CTFSPacketStreamBuilder::make_ctfs_record(const Options& options)
@@ -35,9 +36,9 @@ std::vector<std::byte> firestorm::test::CTFSPacketStreamBuilder::make_ctfs_recor
 
     // Step 4.  Overwrite checksum now the entire packet is known.
     const auto reference_checksum = options.checksum.value_or(get_reference_checksum(record));
-    record[9] = static_cast<std::byte>(reference_checksum >> 24);
-    record[10] = static_cast<std::byte>(reference_checksum >> 16);
-    record[11] = static_cast<std::byte>(reference_checksum >> 8);
+    record[9] = static_cast<std::byte>(reference_checksum >> 24U);
+    record[10] = static_cast<std::byte>(reference_checksum >> 16U);
+    record[11] = static_cast<std::byte>(reference_checksum >> 8U);
     record[12] = static_cast<std::byte>(reference_checksum);
 
     return record;
@@ -53,9 +54,9 @@ std::uint32_t firestorm::test::CTFSPacketStreamBuilder::get_reference_checksum(
     std::uint32_t accumulator = 0;
 
     for (std::size_t offset = 0; offset < record.size(); offset += 4) {
-        const auto word = std::to_integer<std::uint32_t>(byte_at(offset)) << 24 |
-                          std::to_integer<std::uint32_t>(byte_at(offset + 1)) << 16 |
-                          std::to_integer<std::uint32_t>(byte_at(offset + 2)) << 8 |
+        const auto word = std::to_integer<std::uint32_t>(byte_at(offset)) << 24U |
+                          std::to_integer<std::uint32_t>(byte_at(offset + 1)) << 16U |
+                          std::to_integer<std::uint32_t>(byte_at(offset + 2)) << 8U |
                           std::to_integer<std::uint32_t>(byte_at(offset + 3));
 
         accumulator = std::rotl(accumulator + word, 1);
@@ -66,14 +67,14 @@ std::uint32_t firestorm::test::CTFSPacketStreamBuilder::get_reference_checksum(
 
 void firestorm::test::CTFSPacketStreamBuilder::append_be16(std::vector<std::byte>& output, const std::uint16_t value)
 {
-    output.push_back(static_cast<std::byte>(value >> 8));
+    output.push_back(static_cast<std::byte>(value >> 8U));
     output.push_back(static_cast<std::byte>(value));
 }
 
 void firestorm::test::CTFSPacketStreamBuilder::append_be32(std::vector<std::byte>& output, const std::uint32_t value)
 {
-    output.push_back(static_cast<std::byte>(value >> 24));
-    output.push_back(static_cast<std::byte>(value >> 16));
-    output.push_back(static_cast<std::byte>(value >> 8));
+    output.push_back(static_cast<std::byte>(value >> 24U));
+    output.push_back(static_cast<std::byte>(value >> 16U));
+    output.push_back(static_cast<std::byte>(value >> 8U));
     output.push_back(static_cast<std::byte>(value));
 }

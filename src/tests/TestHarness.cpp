@@ -12,7 +12,6 @@
 #include <functional>
 #include <iostream>
 #include <ranges>
-#include <regex>
 
 namespace firestorm::test
 {
@@ -44,7 +43,7 @@ int TestHarness::run(const int argc, const char* const* const argv, const std::i
             return matches;
         };
     } else {
-        std::cout << "No test specification given; running all tests in fixture." << std::endl;
+        std::cout << "No test specification given; running all tests in fixture." << '\n';
         predicate = []([[maybe_unused]] const TestCase&) noexcept {
             return true;
         };
@@ -70,7 +69,7 @@ int TestHarness::run(const int argc, const char* const* const argv, const std::i
     }
 
     if (!run) {
-        std::cerr << "No test cases were run." << std::endl;
+        std::cerr << "No test cases were run." << '\n';
         return EXIT_FAILURE;
     }
 

@@ -9,6 +9,9 @@
 
 #include "CTFSPacket.hpp"
 
+#include <tuple>
+#include <utility>
+
 namespace firestorm
 {
 
@@ -30,6 +33,8 @@ CTFSPacket::CTFSPacket(const std::uint16_t sequence_number,
 {
     this->payload.assign(payload.cbegin(), payload.cend());
 }
+
+CTFSPacket::~CTFSPacket() noexcept = default;
 
 CTFSPacket& CTFSPacket::operator=(CTFSPacket&& other) noexcept
 {

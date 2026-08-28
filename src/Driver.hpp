@@ -11,7 +11,9 @@
 #define FIRESTORM_DRIVER_HPP
 
 #include <memory>
+#include <vector>
 
+#include "CTFSPacket.hpp"
 #include "TrafficDecoder.hpp"
 
 namespace firestorm
@@ -41,6 +43,11 @@ public:
     explicit Driver(bool classified_policy, bool drop_bad_checksums);
 
     ~Driver() noexcept;
+
+    Driver(const Driver&) = delete;
+    Driver& operator=(const Driver&) = delete;
+    Driver(Driver&&) = delete;
+    Driver& operator=(Driver&&) = delete;
 
     /**
      * Processes the incoming stream and reconstructs the captured PDF.
@@ -95,7 +102,7 @@ private:
     void process_record(const EthernetFrameView& ethernet_frame_view);
 
     bool drop_bad_checksums;                            /**< Should invalid checksums be ignored? */
-    std::unique_ptr<IFrameRouter> frame_router{};       /**< Routing delegate for forwarding frame packets. */
+    std::unique_ptr<IFrameRouter> frame_router;         /**< Routing delegate for forwarding frame packets. */
     std::vector<std::vector<CTFSPacket>> packet_groups; /**< Unordered sets of packets, grouped by file ID. */
 };
 

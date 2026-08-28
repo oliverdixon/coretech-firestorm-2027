@@ -10,13 +10,13 @@
 #ifndef FIRESTORM_PDFWRITER_HPP
 #define FIRESTORM_PDFWRITER_HPP
 
-#include <ranges>
+#include <iosfwd>
 #include <span>
-
-#include "CTFSPacket.hpp"
 
 namespace firestorm
 {
+
+class CTFSPacket;
 
 /**
  * Validates and produces PDF files from CTFSPacket streams.

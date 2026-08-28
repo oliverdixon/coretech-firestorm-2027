@@ -11,14 +11,17 @@
 #define FIRESTORM_ASYNCFRAMESINK_HPP
 
 #include <condition_variable>
+#include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <exception>
+#include <memory>
 #include <mutex>
 #include <optional>
-#include <span>
 #include <string>
 #include <string_view>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include "TCPConnection.hpp"
@@ -61,7 +64,9 @@ public:
      *
      * @throws std::bad_alloc Storing @p host fails.
      */
-    AsyncFrameSink(std::string_view host, std::uint16_t port, std::size_t maximum_buffered_bytes = 8U * 1024U * 1024U);
+    AsyncFrameSink(std::string_view host,
+                   std::uint16_t port,
+                   std::size_t maximum_buffered_bytes = std::size_t{8} * 1024 * 1024);
 
     /**
      * Drains the sink and closes the connection.

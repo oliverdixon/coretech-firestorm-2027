@@ -11,9 +11,17 @@
 #define FIRESTORM_TRAFFICDECODER_HPP
 
 #include <algorithm>
+#include <array>
+#include <concepts>
+#include <cstddef>
+#include <cstdint>
+#include <format>
 #include <functional>
+#include <span>
 #include <stdexcept>
+#include <string>
 #include <variant>
+#include <vector>
 
 #include "CTFSPacket.hpp"
 #include "CTFSRecordView.hpp"
@@ -222,17 +230,19 @@ bool TrafficDecoder::consume_ctfs_record(const std::span<const std::byte> availa
 
     // Cheaply create a non-owning view of the bytes so we don't have to repeatedly decode.
     const auto record_bytes = available.first(record_size);
-    const CTFSPacketView packet_view{.bytes = record_bytes,
-                                     .padding = record_bytes.subspan<13, 3>(),
-                                     .payload = record_bytes.subspan(header_size, data_length),
-                                     .sequence_number = sequence_number,
-                                     .data_length = data_length,
-                                     .file_id = std::to_integer<std::uint8_t>(record_bytes[8]),
-                                     .received_checksum = decode_big_endian(record_bytes.subspan<9, 4>())};
+    const CTFSPacketView packet_view{
+        .bytes = record_bytes,
+        .padding = record_bytes.subspan<13, 3>(),
+        .payload = record_bytes.subspan(header_size, data_length),
+        .sequence_number = sequence_number,
+        .data_length = data_length,
+        .file_id = std::to_integer<std::uint8_t>(record_bytes[8]),
+        .received_checksum = decode_big_endian(record_bytes.subspan<9, 4>()),
+    };
 
     // If the padding is non-zero, it's a definite error.
-    const auto padding = std::to_integer<std::uint32_t>(packet_view.padding[0]) << 16 |
-                         std::to_integer<std::uint16_t>(packet_view.padding[1]) << 8 |
+    const auto padding = std::to_integer<std::uint32_t>(packet_view.padding[0]) << 16U |
+                         std::to_integer<std::uint16_t>(packet_view.padding[1]) << 8U |
                          std::to_integer<std::uint8_t>(packet_view.padding[2]);
     if (padding != 0)
         throw std::runtime_error(std::format("Refused CTFS packet (F#{}, S#{}) due to non-zero padding: got {:#X}.",
@@ -284,8 +294,8 @@ bool TrafficDecoder::consume_ethernet_frame(const std::span<const std::byte> ava
         throw std::runtime_error("Unsupported ethernet protocol.");
 
     const auto ip_metadata = std::to_integer<std::uint8_t>(available[ethernet_header_size]);
-    const auto ip_version = static_cast<std::uint8_t>(ip_metadata >> 4);
-    const auto ip_header_size = static_cast<std::size_t>(ip_metadata & 0x0f) << 2;
+    const auto ip_version = static_cast<std::uint8_t>(ip_metadata >> 4U);
+    const auto ip_header_size = static_cast<std::size_t>(ip_metadata & 0x0FU) << 2U;
 
     if (ip_version != 4)
         throw std::runtime_error("Unsupported IP version.");
@@ -304,14 +314,16 @@ bool TrafficDecoder::consume_ethernet_frame(const std::span<const std::byte> ava
     const auto frame_bytes = available.first(frame_size);
     const auto ip_bytes = frame_bytes.subspan(ethernet_header_size, ip_total_length);
 
-    const EthernetFrameView frame_view{.bytes = frame_bytes,
+    const EthernetFrameView frame_view{
+        .bytes = frame_bytes,
 
-                                       .src_mac_prefix = frame_bytes.subspan<6, 3>(),
-                                       .dst_mac_prefix = frame_bytes.first<3>(),
+        .src_mac_prefix = frame_bytes.subspan<6, 3>(),
+        .dst_mac_prefix = frame_bytes.first<3>(),
 
-                                       .ip_header = ip_bytes.first(ip_header_size),
-                                       .ip_payload = ip_bytes.subspan(ip_header_size),
-                                       .ip_protocol = std::to_integer<std::uint8_t>(ip_bytes[9])};
+        .ip_header = ip_bytes.first(ip_header_size),
+        .ip_payload = ip_bytes.subspan(ip_header_size),
+        .ip_protocol = std::to_integer<std::uint8_t>(ip_bytes[9]),
+    };
 
     std::invoke(callback, frame_view);
     consumed += frame_size;

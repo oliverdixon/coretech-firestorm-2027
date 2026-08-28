@@ -11,7 +11,6 @@
 #define FIRESTORM_CTFSPACKETSTREAMBUILDER_HPP
 
 #include <cstdint>
-#include <limits>
 #include <optional>
 #include <span>
 #include <vector>

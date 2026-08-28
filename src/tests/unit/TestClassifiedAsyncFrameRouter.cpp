@@ -24,7 +24,8 @@ namespace
 constexpr std::array monitored_destinations{
     SampleFrameBuilders::MACPrefix{std::byte{0x00}, std::byte{0x1A}, std::byte{0xA0}},
     SampleFrameBuilders::MACPrefix{std::byte{0x00}, std::byte{0x1E}, std::byte{0xC9}},
-    SampleFrameBuilders::MACPrefix{std::byte{0x00}, std::byte{0x15}, std::byte{0x5D}}};
+    SampleFrameBuilders::MACPrefix{std::byte{0x00}, std::byte{0x15}, std::byte{0x5D}},
+};
 
 /**
  * All MAC source prefixes for which malicious handling is indicated.
@@ -32,7 +33,8 @@ constexpr std::array monitored_destinations{
 constexpr std::array malicious_sources{
     SampleFrameBuilders::MACPrefix{std::byte{0x00}, std::byte{0x0C}, std::byte{0x29}},
     SampleFrameBuilders::MACPrefix{std::byte{0x00}, std::byte{0x50}, std::byte{0x56}},
-    SampleFrameBuilders::MACPrefix{std::byte{0x00}, std::byte{0x1C}, std::byte{0x14}}};
+    SampleFrameBuilders::MACPrefix{std::byte{0x00}, std::byte{0x1C}, std::byte{0x14}},
+};
 
 /**
  * Routes frames and verifies the exact byte stream delivered to each endpoint.
@@ -109,21 +111,23 @@ void routes_complete_policy_matrix(TestHarness& harness)
         std::byte{0x06}, IPPROTO_ICMP, malicious_sources[2], monitored_destinations[2]);
 
     // All payloads to submit to the router
-    constexpr std::array submitted{just_tcp,
-                                   just_udp,
-                                   just_other,
+    constexpr std::array submitted{
+        just_tcp,
+        just_udp,
+        just_other,
 
-                                   malicious_tcp,
-                                   malicious_udp,
-                                   malicious_other,
+        malicious_tcp,
+        malicious_udp,
+        malicious_other,
 
-                                   monitored_tcp,
-                                   monitored_udp,
-                                   monitored_other,
+        monitored_tcp,
+        monitored_udp,
+        monitored_other,
 
-                                   both_tcp,
-                                   both_udp,
-                                   both_other};
+        both_tcp,
+        both_udp,
+        both_other,
+    };
 
     const auto expected_tcp = TestHarness::concatenate(just_tcp, monitored_tcp);
     const auto expected_monitored =

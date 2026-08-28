@@ -91,7 +91,7 @@ void LoopbackTCPReceiver::receive(const std::stop_token& stop_token,
         if (!listening_announced) {
             try {
                 ready->set_exception(failure);
-            } catch (...) {
+            } catch (...) { // NOLINT(*-empty-catch)
                 // Promise was already satisfied.
             }
         }

@@ -7,7 +7,12 @@
  * @date 2026-08-26
  */
 
+#include <cstddef>
+#include <exception>
 #include <ranges>
+#include <span>
+#include <string>
+#include <string_view>
 
 #include "../Driver.hpp"
 #include "../Logger.hpp"

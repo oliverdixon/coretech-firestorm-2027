@@ -11,8 +11,12 @@
 #define FIRESTORM_CLASSIFIEDASYNCFRAMEROUTER_HPP
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
 #include <cstdint>
+#include <ranges>
 #include <span>
+#include <string_view>
 
 #include "AsyncFrameSink.hpp"
 #include "IFrameRouter.hpp"

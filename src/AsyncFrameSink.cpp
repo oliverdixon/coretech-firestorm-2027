@@ -9,6 +9,11 @@
 
 #include "AsyncFrameSink.hpp"
 
+#include <format>
+#include <limits>
+#include <span>
+#include <stdexcept>
+
 #include "Logger.hpp"
 
 namespace firestorm

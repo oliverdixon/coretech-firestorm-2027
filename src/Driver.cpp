@@ -9,23 +9,33 @@
 
 #include "Driver.hpp"
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <functional>
 #include <ranges>
+#include <span>
+#include <utility>
+#include <variant>
 
 #include "CTFSPacket.hpp"
 #include "ClassifiedAsyncFrameRouter.hpp"
+#include "IFrameRouter.hpp"
 #include "Logger.hpp"
 #include "PDFWriter.hpp"
 #include "PassthroughAsyncFrameRouter.hpp"
+#include "TCPConnection.hpp"
 #include "TrafficDecoder.hpp"
 
 namespace
 {
 
 template <class... Ts>
-struct overloads : Ts...
+struct Overloads : Ts...
 {
     using Ts::operator()...;
 };
@@ -50,10 +60,10 @@ void Driver::run()
 {
     static constexpr std::uint16_t incoming_port = 5733;
 
-    std::array<std::byte, 64 * 1024> storage{};
+    std::array<std::byte, std::size_t{64} * 1024> storage{};
     TrafficDecoder decoder(drop_bad_checksums);
 
-    TCPConnection source{incoming_port};
+    const TCPConnection source{incoming_port};
     const auto callback = std::bind_front(&Driver::despatch_record, this);
 
     for (std::span<const std::byte> bytes = source.read(storage); !bytes.empty(); bytes = source.read(storage))

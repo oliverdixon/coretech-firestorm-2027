@@ -233,47 +233,47 @@ int main(const int argc, const char* const* const argv)
         {
             .id = "write_single_packet_exactly",
             .name = "PDF writer preserves binary data",
-            .function = write_single_packet_exactly
+            .function = write_single_packet_exactly,
         },
         {
             .id = "write_across_packet_boundaries",
             .name = "PDF serialisation is independent of packet boundaries",
-            .function = write_across_packet_boundaries
+            .function = write_across_packet_boundaries,
         },
         {
             .id = "accept_trailing_padding",
             .name = "PDF writer accepts and preserves trailing whitespace",
-            .function = accept_trailing_padding
+            .function = accept_trailing_padding,
         },
         {
             .id = "enforce_eof_search_limit",
             .name = "PDF writer enforces the 1024 search bound for trailing EOF",
-            .function = enforce_eof_search_limit
+            .function = enforce_eof_search_limit,
         },
         {
             .id = "reject_empty_input",
             .name = "PDF writer rejects an empty packet collection",
-            .function = reject_empty_input
+            .function = reject_empty_input,
         },
         {
             .id = "reject_invalid_header",
             .name = "PDF writer rejects a byte stream with an invalid PDF header",
-            .function = reject_invalid_header
+            .function = reject_invalid_header,
         },
         {
             .id = "reject_invalid_tail",
             .name = "PDF writer rejects a byte stream with an invalid PDF EOF tail",
-            .function = reject_invalid_tail
+            .function = reject_invalid_tail,
         },
         {
             .id = "ignore_duplicate_packets",
             .name = "PDF writer ignores duplicated packets",
-            .function = ignore_duplicate_packets
+            .function = ignore_duplicate_packets,
         },
         {
             .id = "propagate_output_failures",
             .name = "PDF writer propagates stream writer failures",
-            .function = propagate_output_failures
+            .function = propagate_output_failures,
         },
     });
 
