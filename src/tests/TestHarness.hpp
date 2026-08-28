@@ -163,7 +163,7 @@ public:
      * @param argv Argument vector, passed from the shell.
      * @param test_cases Test cases to execute.
      *
-     * @return @c EXIT_SUCCESS if every test case passes; @c EXIT_FAILURE otherwise.
+     * @return @c EXIT_SUCCESS if every test case passes; @c EXIT_FAILURE otherwise, or if no test cases were selected.
      */
     static int run(int argc, const char* const* argv, std::initializer_list<TestCase> test_cases);
 

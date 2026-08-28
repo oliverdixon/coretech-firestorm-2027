@@ -33,11 +33,15 @@ int TestHarness::run(const int argc, const char* const* const argv, const std::i
             return std::string_view{arg};
         });
 
+    bool run = false;
     std::function<bool(const TestCase&)> predicate;
 
     if (args.size() >= 3 && std::ranges::equal(args[1], std::string_view{"--test"})) {
-        predicate = [match = args[2]](const TestCase& test_case) {
-            return std::ranges::equal(test_case.id, match);
+        predicate = [&run, match = args[2]](const TestCase& test_case) {
+            const auto matches = std::ranges::equal(test_case.id, match);
+            if (matches)
+                run = true;
+            return matches;
         };
     } else {
         std::cout << "No test specification given; running all tests in fixture." << std::endl;
@@ -61,7 +65,12 @@ int TestHarness::run(const int argc, const char* const* const argv, const std::i
         if (harness.failure_count == failures_before)
             std::println(std::cout, "[ OK     ] {}", id);
         else
-            std::println(std::cout, "[ FAILED ] {}", id);
+            std::println(std::cerr, "[ FAILED ] {}", id);
+    }
+
+    if (!run) {
+        std::cerr << "No test cases were run." << std::endl;
+        return EXIT_FAILURE;
     }
 
     return harness.failure_count == 0 ? EXIT_SUCCESS : EXIT_FAILURE;

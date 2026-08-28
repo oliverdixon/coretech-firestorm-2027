@@ -95,6 +95,10 @@ if (FIRESTORM_BUILD_TESTING)
             accept_trailing_padding
             enforce_eof_search_limit
             reject_empty_input
+            reject_invalid_header
+            reject_invalid_tail
+            ignore_duplicate_packets
+            propagate_output_failures
     )
 
     target_link_libraries(FireStormTestCore PRIVATE FireStormCore ProjectFlags)

@@ -124,8 +124,107 @@ void reject_empty_input(TestHarness& harness)
     CHECK_THROWS(serialise_pdf(packets), std::runtime_error);
 }
 
+/**
+ * @test Verifies that a byte stream with an invalid PDF header is rejected.
+ *
+ * @param harness Active harness.
+ */
+void reject_invalid_header(TestHarness& harness)
+{
+    const std::string invalid_pdf = "not a pdf\n%%EOF";
+
+    std::vector<CTFSPacket> packets;
+    packets.emplace_back(0, 0, std::as_bytes(std::span{invalid_pdf}));
+
+    CHECK_THROWS(serialise_pdf(packets), std::runtime_error);
+}
+
+/**
+ * @test Verifies that a byte stream with an invalid PDF EOF tail is rejected.
+ *
+ * @param harness Active harness.
+ */
+void reject_invalid_tail(TestHarness& harness)
+{
+    const std::string no_eof = "%PDF-1.7\nnot a pdf";
+    const std::string corrupted_eof = "%PDF-1.7\nnot a pdf\n%%EOF\nbad data";
+
+    std::vector<CTFSPacket> no_eof_packets;
+    no_eof_packets.emplace_back(0, 0, std::as_bytes(std::span{no_eof}));
+    CHECK_THROWS(serialise_pdf(no_eof_packets), std::runtime_error);
+
+    std::vector<CTFSPacket> corrupted_eof_packets;
+    corrupted_eof_packets.emplace_back(0, 0, std::as_bytes(std::span{corrupted_eof}));
+    CHECK_THROWS(serialise_pdf(corrupted_eof_packets), std::runtime_error);
+}
+
+/**
+ * @test Verifies that the PDFWriter ignores duplicated packets.
+ *
+ * @param harness Active harness.
+ */
+void ignore_duplicate_packets(TestHarness& harness)
+{
+    const std::string pdf = "%PDF-1.7\ndocument\n%%EOF";
+
+    std::vector<CTFSPacket> packets;
+    packets.emplace_back(0, 0, std::as_bytes(std::span{pdf}));
+    packets.emplace_back(0, 0, std::as_bytes(std::span{pdf}));
+
+    CHECK_EQUALS(serialise_pdf(packets), pdf);
+}
+
+/**
+ * @test Verifies that the PDFWriter propagates stream write failures.
+ *
+ * @param harness Active harness.
+ */
+void propagate_output_failures(TestHarness& harness)
+{
+    /*
+     * To simulate a failing buffer, we implement a std::streambuf that rejects any write. Thankfully std::streambuf is
+     * a base class for character buffers with virtual member functions that makes this trivial.
+     *
+     * In particular, @c xsputn will always report that zero characters were written, and @c overflow always indicates
+     * failure to write a character.
+     */
+
+    class RejectingBuffer final : public std::streambuf
+    {
+    protected:
+        std::streamsize xsputn([[maybe_unused]] const char_type* const string,
+                               [[maybe_unused]] const std::streamsize size) override
+        {
+            return 0;
+        }
+
+        int_type overflow([[maybe_unused]] const int_type ch) override
+        {
+            return traits_type::eof();
+        }
+    } rejecting_buffer;
+
+    std::ostream rejecting_stream{&rejecting_buffer};
+    const std::string pdf = "%PDF-1.7\ndocument\n%%EOF";
+
+    std::vector<CTFSPacket> packets;
+    packets.emplace_back(0, 0, std::as_bytes(std::span{pdf}));
+
+    CHECK_THROWS(PDFWriter::write_pdf(rejecting_stream, packets), std::ios_base::failure);
+}
+
 } // namespace
 
+/**
+ * Executes selected PDFWriter tests with a TestHarness.
+ *
+ * For the meanings of @p argc and @p argv, see TestHarness::run documentation.
+ *
+ * @param argc Argument count
+ * @param argv Argument vector
+ *
+ * @return Zero if all executed tests passed; non-zero otherwise.
+ */
 int main(const int argc, const char* const* const argv)
 {
     // clang-format off
@@ -155,6 +254,26 @@ int main(const int argc, const char* const* const argv)
             .id = "reject_empty_input",
             .name = "PDF writer rejects an empty packet collection",
             .function = reject_empty_input
+        },
+        {
+            .id = "reject_invalid_header",
+            .name = "PDF writer rejects a byte stream with an invalid PDF header",
+            .function = reject_invalid_header
+        },
+        {
+            .id = "reject_invalid_tail",
+            .name = "PDF writer rejects a byte stream with an invalid PDF EOF tail",
+            .function = reject_invalid_tail
+        },
+        {
+            .id = "ignore_duplicate_packets",
+            .name = "PDF writer ignores duplicated packets",
+            .function = ignore_duplicate_packets
+        },
+        {
+            .id = "propagate_output_failures",
+            .name = "PDF writer propagates stream writer failures",
+            .function = propagate_output_failures
         },
     });
 

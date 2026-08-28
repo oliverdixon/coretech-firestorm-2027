@@ -4,6 +4,8 @@
       <w>CTFS</w>
       <w>cooloff</w>
       <w>ctfs</w>
+      <w>streambuf</w>
+      <w>xsputn</w>
     </words>
   </dictionary>
 </component>

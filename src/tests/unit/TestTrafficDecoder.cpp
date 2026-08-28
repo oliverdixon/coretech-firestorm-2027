@@ -418,9 +418,14 @@ void compaction_preserves_partial(TestHarness& harness)
 } // namespace
 
 /**
- * Executes all TrafficDecoder tests with a TestHarness.
+ * Executes selected TrafficDecoder tests with a TestHarness.
  *
- * @return Zero if all tests passed; non-zero otherwise.
+ * For the meanings of @p argc and @p argv, see TestHarness::run documentation.
+ *
+ * @param argc Argument count
+ * @param argv Argument vector
+ *
+ * @return Zero if all executed tests passed; non-zero otherwise.
  */
 int main(const int argc, const char* const* const argv)
 {
