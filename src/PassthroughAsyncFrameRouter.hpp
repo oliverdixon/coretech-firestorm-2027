@@ -22,7 +22,7 @@ namespace firestorm
  * Asynchronously forwards Ethernet frames to the primary endpoint.
  *
  * This class implements the FIRE STORM passthrough routing policy. Every frame passed to @ref route is copied into
- * owned, immutable storage and queued for delivery to the TCP endpoint at @c 127.0.0.1:5744.
+ * owned, immutable storage and queued for delivery (by default) to the TCP endpoint at @c 127.0.0.1:5744.
  *
  * Network deliver is performed by the an AsyncFrameSink worker. Consequently, returning from @ref route means that the
  * frame has been accepted for asynchronous delivery.
@@ -32,7 +32,18 @@ namespace firestorm
  */
 class PassthroughAsyncFrameRouter final : public IFrameRouter
 {
+    static constexpr auto default_host = "127.0.0.1";   /**< Default network address for @ref tcp_sink. */
+    static constexpr std::uint16_t default_port = 5744; /**< Default port number for @ref tcp_sink. */
+
 public:
+    /**
+     * Creates a new PassthroughAsyncFrameRouter for routing frames to the specified endpoint.
+     *
+     * @param host Network address of the sink.
+     * @param port Port number for the sink.
+     */
+    explicit PassthroughAsyncFrameRouter(std::string_view host = default_host, std::uint16_t port = default_port);
+
     /**
      * Copies and queues an Ethernet frame for delivery to the TCP endpoint.
      *
@@ -53,11 +64,8 @@ public:
     void drain_and_report() override;
 
 private:
-    static constexpr auto endpoint_addr = "127.0.0.1"; /**< Network address of the sinks. */
-    static constexpr std::uint16_t port = 5744;        /**< Port number for @ref tcp_sink. */
-
-    std::size_t frame_count = 0;
-    AsyncFrameSink tcp_sink{endpoint_addr, port}; /**< Primary sink for passthrough and TCP-classified traffic. */
+    std::size_t frame_count = 0; /**< Total number of frames sent and received by the endpoint. */
+    AsyncFrameSink tcp_sink;     /**< Primary sink for passthrough and TCP-classified traffic. */
 };
 
 } // namespace firestorm

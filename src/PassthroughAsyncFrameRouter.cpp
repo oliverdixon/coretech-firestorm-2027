@@ -15,6 +15,11 @@
 namespace firestorm
 {
 
+PassthroughAsyncFrameRouter::PassthroughAsyncFrameRouter(const std::string_view host, const std::uint16_t port) :
+    tcp_sink(host, port)
+{
+}
+
 void PassthroughAsyncFrameRouter::route(const EthernetFrameView& view)
 {
     tcp_sink.enqueue(std::make_shared<const std::vector<std::byte>>(view.bytes.begin(), view.bytes.end()));

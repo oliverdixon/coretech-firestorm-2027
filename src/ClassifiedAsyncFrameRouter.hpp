@@ -23,7 +23,8 @@ namespace firestorm
 /**
  * Asynchronously classifies and routes Ethernet frames.
  *
- * This class implements the FIRE STORM classified routing policy:
+ * This class implements the FIRE STORM classified routing policy. The endpoints shown are defaults and may be
+ * configured with constructor injection:
  *
  *  - A frame addressed to a monitored MAC prefix is sent to the monitoring endpoint at @c 127.0.0.1:5745.
  *  - A non-malicious TCP frame is sent to the TCP endpoint at @c 127.0.0.1:5744.
@@ -42,7 +43,25 @@ namespace firestorm
  */
 class ClassifiedAsyncFrameRouter final : public IFrameRouter
 {
+    static constexpr auto default_endpoint_addr = "127.0.0.1";  /**< Default network address of the sinks. */
+    static constexpr std::uint16_t default_tcp_port = 5744;     /**< Default port number for @ref tcp_sink. */
+    static constexpr std::uint16_t default_monitor_port = 5745; /**< Default port number for @ref monitor_sink. */
+    static constexpr std::uint16_t default_udp_port = 5746;     /**< Default port number for @ref udp_sink. */
+
 public:
+    /**
+     * Creates a new ClassifiedAsyncFrameRouter for routing frames to the specified endpoints.
+     *
+     * @param host Network address of the sink endpoints.
+     * @param tcp_port Port number for the TCP sink.
+     * @param monitor_port Port number for the monitoring sink.
+     * @param udp_port Port number for the UDP sink.
+     */
+    explicit ClassifiedAsyncFrameRouter(std::string_view host = default_endpoint_addr,
+                                        std::uint16_t tcp_port = default_tcp_port,
+                                        std::uint16_t monitor_port = default_monitor_port,
+                                        std::uint16_t udp_port = default_udp_port);
+
     /**
      * Classifies an Ethernet frame and queues it for its applicable destinations.
      *
@@ -69,11 +88,6 @@ public:
 private:
     using MACAddressView = std::span<const std::byte, 3>; /**< Non-owning view of a three-byte MAC address prefix. */
     using MACPrefix = std::array<std::byte, 3>;           /**< Three-byte MAC address prefix. */
-
-    static constexpr auto endpoint_addr = "127.0.0.1";    /**< Network address of the sinks. */
-    static constexpr std::uint16_t tcp_port = 5744;       /**< Port number for @ref tcp_sink. */
-    static constexpr std::uint16_t monitor_port = 5745;   /**< Port number for @ref monitor_sink. */
-    static constexpr std::uint16_t udp_port = 5746;       /**< Port number for @ref udp_sink. */
 
     /**
      * Tests whether a MAC address starts with any supplied prefix.
@@ -109,12 +123,12 @@ private:
      */
     [[nodiscard]] static constexpr bool has_malicious_source(MACAddressView source) noexcept;
 
-    std::size_t frame_count = 0;
-    std::size_t malicious_count = 0;
+    std::size_t frame_count = 0;     /**< Total number of framed routed into a sink. */
+    std::size_t malicious_count = 0; /**< Total number of frames marked as malicious. */
 
-    AsyncFrameSink tcp_sink{endpoint_addr, tcp_port}; /**< Primary sink for passthrough and TCP-classified traffic. */
-    AsyncFrameSink monitor_sink{endpoint_addr, monitor_port}; /**< Sink for monitored traffic. */
-    AsyncFrameSink udp_sink{endpoint_addr, udp_port};         /**< Sink for UDP-classified traffic. */
+    AsyncFrameSink tcp_sink;         /**< Primary sink for passthrough and TCP-classified traffic. */
+    AsyncFrameSink monitor_sink;     /**< Sink for monitored traffic. */
+    AsyncFrameSink udp_sink;         /**< Sink for UDP-classified traffic. */
 };
 
 } // namespace firestorm

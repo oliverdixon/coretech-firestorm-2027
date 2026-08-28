@@ -17,6 +17,16 @@
 namespace firestorm
 {
 
+ClassifiedAsyncFrameRouter::ClassifiedAsyncFrameRouter(const std::string_view host,
+                                                       const std::uint16_t tcp_port,
+                                                       const std::uint16_t monitor_port,
+                                                       const std::uint16_t udp_port) :
+    tcp_sink(host, tcp_port),
+    monitor_sink(host, monitor_port),
+    udp_sink(host, udp_port)
+{
+}
+
 void ClassifiedAsyncFrameRouter::route(const EthernetFrameView& view)
 {
     const auto monitored = has_monitored_destination(view.dst_mac_prefix);
