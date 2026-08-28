@@ -89,6 +89,11 @@ if (FIRESTORM_BUILD_TESTING)
             compaction_preserves_partial
     )
 
+    set(TestTrafficDecoder_DEPENDENCIES
+            src/tests/CTFSPacketStreamBuilder.cpp
+            src/tests/CTFSPacketStreamBuilder.hpp
+    )
+
     set(TestPDFWriter_CASES
             write_single_packet_exactly
             write_across_packet_boundaries
@@ -101,20 +106,34 @@ if (FIRESTORM_BUILD_TESTING)
             propagate_output_failures
     )
 
+    set(TestFrameRouters_CASES) # TODO
+
+    set(TestFrameRouters_DEPENDENCIES
+            src/tests/LoopbackTCPReceiver.cpp
+            src/tests/LoopbackTCPReceiver.hpp
+    )
+
     target_link_libraries(FireStormTestCore PRIVATE FireStormCore ProjectFlags)
-    file(GLOB UNIT_TESTS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/tests/unit/*.cpp")
+    file(GLOB UNIT_TEST_PATHS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/tests/unit/*.cpp")
 
     # Each CPP file in src/tests/unit denotes a fixture of unit tests. An executable CMake target is produced for each
     # fixture. A fixture is composed of individual unit test cases, which are defined by the CMake list variable
     # Test{FIXTURE}_CASES.
     #
+    # If any additional translation units need to go in the source vector of the fixture executable target, they can be
+    # specified in the Test${FIXTURE}_DEPENDENCIES CMake list variable.
+    #
     # Each test case is registered with CTest under the name Unit.{FIXTURE}.{CASE} and associated with the labels
     # "Unit" and {FIXTURE}.
 
-    foreach (TEST_PATH IN LISTS UNIT_TESTS)
+    foreach (TEST_PATH IN LISTS UNIT_TEST_PATHS)
         cmake_path(GET TEST_PATH STEM TEST_NAME)
         add_executable(${TEST_NAME} ${TEST_PATH})
         target_link_libraries(${TEST_NAME} PRIVATE FireStormTestCore)
+
+        if (DEFINED "${TEST_NAME}_DEPENDENCIES")
+            target_sources(${TEST_NAME} PRIVATE ${${TEST_NAME}_DEPENDENCIES})
+        endif ()
 
         string(REGEX REPLACE "^Test" "" FIXTURE_NAME "${TEST_NAME}")
         foreach (CASE_NAME IN LISTS "${TEST_NAME}_CASES")
