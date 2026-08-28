@@ -117,13 +117,17 @@ if (FIRESTORM_BUILD_TESTING)
     set(TestPassthroughAsyncFrameRouter_DEPENDENCIES
             src/tests/LoopbackTCPReceiver.cpp
             src/tests/LoopbackTCPReceiver.hpp
+            src/tests/SampleFrameBuilders.hpp
     )
 
-    set(TestClassifiedAsyncFrameRouter_CASES) # TODO
+    set(TestClassifiedAsyncFrameRouter_CASES
+            routes_complete_policy_matrix
+    )
 
     set(TestClassifiedAsyncFrameRouter_DEPENDENCIES
             src/tests/LoopbackTCPReceiver.cpp
             src/tests/LoopbackTCPReceiver.hpp
+            src/tests/SampleFrameBuilders.hpp
     )
 
     target_link_libraries(FireStormTestCore PRIVATE FireStormCore ProjectFlags)

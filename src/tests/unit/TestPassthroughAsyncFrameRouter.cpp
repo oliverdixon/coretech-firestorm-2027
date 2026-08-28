@@ -10,6 +10,7 @@
 #include "../../EthernetFrameView.hpp"
 #include "../../PassthroughAsyncFrameRouter.hpp"
 #include "../LoopbackTCPReceiver.hpp"
+#include "../SampleFrameBuilders.hpp"
 #include "../TestHarness.hpp"
 
 using namespace firestorm;
@@ -17,65 +18,6 @@ using namespace firestorm::test;
 
 namespace
 {
-
-/**
- * Constructs a valid-enough Ethernet/IPv4 frame for routing tests.
- *
- * The passthrough router only inspects the complete byte span, but the remaining header fields are populated to keep
- * the test data representative.
- *
- * @param marker Value used to distinguish the frame payload.
- *
- * @return Constructed Ethernet frame.
- */
-constexpr std::array<std::byte, 64> make_test_frame(const std::byte marker) noexcept
-{
-    std::array<std::byte, 64> frame{};
-    frame.fill(marker);
-
-    // Destination MAC.
-    frame[0] = std::byte{0x00};
-    frame[1] = std::byte{0x1A};
-    frame[2] = std::byte{0xA0};
-    frame[3] = std::byte{0x01};
-    frame[4] = std::byte{0x02};
-    frame[5] = std::byte{0x03};
-
-    // Source MAC.
-    frame[6] = std::byte{0x10};
-    frame[7] = std::byte{0x20};
-    frame[8] = std::byte{0x30};
-    frame[9] = std::byte{0x04};
-    frame[10] = std::byte{0x05};
-    frame[11] = std::byte{0x06};
-
-    // IPv4 EtherType.
-    frame[12] = std::byte{0x08};
-    frame[13] = std::byte{0x00};
-
-    // IPv4, 20-byte header.
-    frame[14] = std::byte{0x45};
-
-    // TCP protocol.
-    frame[23] = std::byte{0x06};
-
-    // Include a NUL in the payload so exact binary forwarding is exercised.
-    frame[40] = std::byte{0x00};
-
-    return frame;
-}
-
-EthernetFrameView make_frame_view(const std::span<const std::byte, 64> payload)
-{
-    return {
-        .bytes = payload,
-        .src_mac_prefix = payload.subspan<6, 3>(),
-        .dst_mac_prefix = payload.first<3>(),
-        .ip_header = payload.subspan<14, 20>(),
-        .ip_payload = payload.subspan<34>(),
-        .ip_protocol = std::to_integer<std::uint8_t>(payload[23])
-    };
-}
 
 /**
  * @test Verifies that a single well-formed frame is passed through to the TCP receiver.
@@ -86,9 +28,9 @@ void routes_single_frame(TestHarness& harness)
 {
     LoopbackTCPReceiver receiver;
     PassthroughAsyncFrameRouter router{"127.0.0.1", receiver.get_assigned_port()};
-    constexpr auto frame = make_test_frame(std::byte{0xAA});
+    constexpr auto frame = SampleFrameBuilders::make_frame_payload(std::byte{0xAA});
 
-    router.route(make_frame_view(frame));
+    router.route(SampleFrameBuilders::make_frame_view(frame));
     router.drain_and_report();
 
     receiver.wait();
@@ -105,13 +47,13 @@ void routes_frames_in_order(TestHarness& harness)
     LoopbackTCPReceiver receiver;
     PassthroughAsyncFrameRouter router{"127.0.0.1", receiver.get_assigned_port()};
 
-    constexpr auto first_frame = make_test_frame(std::byte{0x11});
-    constexpr auto second_frame = make_test_frame(std::byte{0x22});
-    constexpr auto third_frame = make_test_frame(std::byte{0x33});
+    constexpr auto first_frame = SampleFrameBuilders::make_frame_payload(std::byte{0x11});
+    constexpr auto second_frame = SampleFrameBuilders::make_frame_payload(std::byte{0x22});
+    constexpr auto third_frame = SampleFrameBuilders::make_frame_payload(std::byte{0x33});
 
-    router.route(make_frame_view(first_frame));
-    router.route(make_frame_view(second_frame));
-    router.route(make_frame_view(third_frame));
+    router.route(SampleFrameBuilders::make_frame_view(first_frame));
+    router.route(SampleFrameBuilders::make_frame_view(second_frame));
+    router.route(SampleFrameBuilders::make_frame_view(third_frame));
 
     router.drain_and_report();
 
@@ -168,15 +110,15 @@ void reuse_after_drain(TestHarness& harness)
     LoopbackTCPReceiver first_receiver;
     PassthroughAsyncFrameRouter router{"127.0.0.1", first_receiver.get_assigned_port()};
 
-    constexpr auto first_frame = make_test_frame(std::byte{0x11});
-    router.route(make_frame_view(first_frame));
+    constexpr auto first_frame = SampleFrameBuilders::make_frame_payload(std::byte{0x11});
+    router.route(SampleFrameBuilders::make_frame_view(first_frame));
     router.drain_and_report();
     first_receiver.wait();
     CHECK(std::ranges::equal(first_receiver.observe_received_bytes(), first_frame));
 
     LoopbackTCPReceiver second_receiver{first_receiver.get_assigned_port()};
-    constexpr auto second_frame = make_test_frame(std::byte{0x22});
-    router.route(make_frame_view(second_frame));
+    constexpr auto second_frame = SampleFrameBuilders::make_frame_payload(std::byte{0x22});
+    router.route(SampleFrameBuilders::make_frame_view(second_frame));
     router.drain_and_report();
     second_receiver.wait();
     CHECK(std::ranges::equal(second_receiver.observe_received_bytes(), second_frame));

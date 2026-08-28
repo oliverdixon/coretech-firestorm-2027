@@ -2,7 +2,6 @@
 
 ## Non-trivial
 
-* Classified async frame router.
 * Use benchmarking to justify performance claims in README.
 
 ## Trivial
