@@ -120,6 +120,11 @@ void routes_frames_in_order(TestHarness& harness)
                              TestHarness::concatenate(first_frame, second_frame, third_frame)));
 }
 
+/**
+ * @test Verifies that the router immediately rejects empty frames.
+ *
+ * @param harness Active harness.
+ */
 void reject_empty_frames(TestHarness& harness)
 {
     PassthroughAsyncFrameRouter router;
@@ -136,6 +141,45 @@ void reject_empty_frames(TestHarness& harness)
 
     CHECK_THROWS(router.route(empty), std::invalid_argument);
     router.drain_and_report();
+}
+
+/**
+ * Verifies that draining an unused router completes successfully.
+ *
+ * @param harness Active harness.
+ */
+void drains_without_frames(TestHarness& harness)
+{
+    PassthroughAsyncFrameRouter router;
+    router.drain_and_report();
+    CHECK(true);
+}
+
+/**
+ * @test Verifies that the router can be used following a full drain.
+ *
+ * Draining closes the first TCP connection and resets the frame sink. A second receiver is established on the same port
+ * before the next frame is submitted.
+ *
+ * @param harness Active harness.
+ */
+void reuse_after_drain(TestHarness& harness)
+{
+    LoopbackTCPReceiver first_receiver;
+    PassthroughAsyncFrameRouter router{"127.0.0.1", first_receiver.get_assigned_port()};
+
+    constexpr auto first_frame = make_test_frame(std::byte{0x11});
+    router.route(make_frame_view(first_frame));
+    router.drain_and_report();
+    first_receiver.wait();
+    CHECK(std::ranges::equal(first_receiver.observe_received_bytes(), first_frame));
+
+    LoopbackTCPReceiver second_receiver{first_receiver.get_assigned_port()};
+    constexpr auto second_frame = make_test_frame(std::byte{0x22});
+    router.route(make_frame_view(second_frame));
+    router.drain_and_report();
+    second_receiver.wait();
+    CHECK(std::ranges::equal(second_receiver.observe_received_bytes(), second_frame));
 }
 
 } // namespace
@@ -169,6 +213,16 @@ int main(const int argc, const char* const* const argv)
             .id = "reject_empty_frames",
             .name = "Routes rejects empty frames",
             .function = reject_empty_frames
+        },
+        {
+            .id = "drains_without_frames",
+            .name = "Draining an unused router completes successfully",
+            .function = drains_without_frames
+        },
+        {
+            .id = "reuse_after_drain",
+            .name = "Router can be reused following a full drain",
+            .function = reuse_after_drain
         },
     });
 

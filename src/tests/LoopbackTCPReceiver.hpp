@@ -43,6 +43,16 @@ public:
     LoopbackTCPReceiver();
 
     /**
+     * Starts a receiver on a specified loopback port.
+     *
+     * @param requested_port The requested port number.
+     *
+     * @throws std::system_error The listening socket cannot be created due to a low-level error.
+     * @throws std::bad_alloc Internal state could not be allocated.
+     */
+    explicit LoopbackTCPReceiver(std::uint16_t requested_port);
+
+    /**
      * Stops the worker and closes all sockets.
      */
     ~LoopbackTCPReceiver() noexcept;
@@ -69,7 +79,9 @@ public:
 
 private:
     // TODO document.
-    void receive(const std::stop_token& stop_token, std::shared_ptr<std::promise<std::uint16_t>> ready);
+    void receive(const std::stop_token& stop_token,
+                 std::shared_ptr<std::promise<std::uint16_t>> ready,
+                 uint16_t requested_port);
 
     std::uint16_t assigned_port = 0;       /**< Bound port in host byte order. */
     std::vector<std::byte> received_bytes; /**< Complete byte stream received from the peer. */

@@ -14,13 +14,18 @@
 namespace firestorm::test
 {
 
-LoopbackTCPReceiver::LoopbackTCPReceiver()
+LoopbackTCPReceiver::LoopbackTCPReceiver() :
+    LoopbackTCPReceiver(0)
+{
+}
+
+LoopbackTCPReceiver::LoopbackTCPReceiver(const std::uint16_t requested_port)
 {
     auto ready = std::make_shared<std::promise<std::uint16_t>>();
     auto port_future = ready->get_future();
 
-    worker = std::jthread([this, ready](const std::stop_token& stop_token) {
-        receive(stop_token, ready);
+    worker = std::jthread([this, ready, requested_port](const std::stop_token& stop_token) {
+        receive(stop_token, ready, requested_port);
     });
 
     assigned_port = port_future.get(); // Wait for the future to be satisfied.
@@ -58,13 +63,17 @@ std::span<const std::byte> LoopbackTCPReceiver::observe_received_bytes() const
     return received_bytes;
 }
 
-void LoopbackTCPReceiver::receive(const std::stop_token& stop_token, std::shared_ptr<std::promise<std::uint16_t>> ready)
+void LoopbackTCPReceiver::receive(const std::stop_token& stop_token,
+                                  std::shared_ptr<std::promise<std::uint16_t>> ready,
+                                  const uint16_t requested_port)
 {
     bool listening_announced = false;
 
     try {
-        const TCPConnection connection{0, [&listening_announced, &ready](const std::uint16_t port) {
-                                     if (!listening_announced) {
+        const TCPConnection connection{
+            requested_port,
+            [&listening_announced, &ready](const std::uint16_t port) {
+                if (!listening_announced) {
                                          ready->set_value(port);
                                          listening_announced = true;
                                      }

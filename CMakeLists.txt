@@ -110,6 +110,8 @@ if (FIRESTORM_BUILD_TESTING)
             routes_single_frame
             routes_frames_in_order
             reject_empty_frames
+            drains_without_frames
+            reuse_after_drain
     )
 
     set(TestPassthroughAsyncFrameRouter_DEPENDENCIES
