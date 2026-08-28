@@ -13,13 +13,14 @@
 #include <cstdint>
 #include <functional>
 #include <span>
+#include <stop_token>
 #include <string_view>
 
 namespace firestorm
 {
 
 /**
- * Owns a single blocking TCP connection.
+ * Owns a single TCP connection.
  *
  * TCPConnection provides exclusive RAII ownership of a POSIX socket. Construction either connects to a remote endpoint
  * or waits for an incoming connection on a specified port.
@@ -49,10 +50,13 @@ public:
      *
      * @param port Local TCP port on which to accept the connection, in host byte order.
      * @param on_listening An optional callback to invoke with the port number following a successful listen call.
+     * @param stop_token A stop token to indicate cancellation of awaiting a client connection.
      *
      * @throws std::system_error An OS-level networking call failed.
      */
-    explicit TCPConnection(std::uint16_t port, const std::function<void(std::uint16_t)>& on_listening = {});
+    explicit TCPConnection(std::uint16_t port,
+                           const std::function<void(std::uint16_t)>& on_listening = {},
+                           const std::stop_token& stop_token = {});
 
     /**
      * Closes the owned TCP connection.
@@ -91,7 +95,6 @@ public:
     void write_all(std::span<const std::byte> data) const;
 
 private:
-
     /**
      * Writes bytes to the connection.
      *
@@ -119,18 +122,39 @@ private:
     static int get_connection_fd(std::string_view host, std::uint16_t port);
 
     /**
-     * Accepts one connection on an ephemeral listening socket.
+     * Accepts one connection and returns its descriptor.
+     *
+     * Creates an ephemeral listening socket and awaits a connection from a client. Once the listening socket is ready,
+     * the callback @p on_listening is invoked with the port number of the connection. While waiting for a client, the
+     * @p stop_token is polled every 50ms; if a stop has been requested, an exception is thrown.
      *
      * @param port Local TCP port on which to accept the connection, in host byte order.
      * @param on_listening Callback to invoke with the port number following a successful listen call.
+     * @param stop_token Token to cancel the operation.
      *
      * @throws std::system_error An OS-level networking call failed.
+     * @throws std::system_error A stop was requested.
      *
      * @return File descriptor of the accepted connection socket.
      */
-    static int get_accept_fd(std::uint16_t port, const std::function<void(uint16_t)>& on_listening);
+    static int get_accept_fd(std::uint16_t port,
+                             const std::function<void(uint16_t)>& on_listening,
+                             const std::stop_token& stop_token);
 
-    int fd; /**< File descriptor of the active socket. */
+    /**
+     * Attempts to connect to a client within a fixed polling period.
+     *
+     * @param listener Socket descriptor of the ephemeral listening socket.
+     * @param stop_token Token to request cancellation of the blocking accept.
+     *
+     * @throws std::system_error An OS-level networking call failed.
+     * @throws std::system_error A stop was requested.
+     *
+     * @return File descriptor of the accepted connection socket, or @c -1 if no client connected.
+     */
+    static int polling_accept(int listener, const std::stop_token& stop_token);
+
+    int fd; /**< File descriptor of the active connected socket. */
 };
 
 } // namespace firestorm

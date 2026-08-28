@@ -10,6 +10,7 @@
 #include "TCPConnection.hpp"
 
 #include <netdb.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -26,8 +27,10 @@ TCPConnection::TCPConnection(const std::string_view host, const std::uint16_t po
 {
 }
 
-TCPConnection::TCPConnection(const std::uint16_t port, const std::function<void(std::uint16_t)>& on_listening) :
-    fd(get_accept_fd(port, on_listening))
+TCPConnection::TCPConnection(const std::uint16_t port,
+                             const std::function<void(std::uint16_t)>& on_listening,
+                             const std::stop_token& stop_token) :
+    fd(get_accept_fd(port, on_listening, stop_token))
 {
 }
 
@@ -138,7 +141,9 @@ int TCPConnection::get_connection_fd(const std::string_view host, const std::uin
     throw std::system_error(errno, std::generic_category(), "connect");
 }
 
-int TCPConnection::get_accept_fd(const std::uint16_t port, const std::function<void(uint16_t)>& on_listening)
+int TCPConnection::get_accept_fd(const std::uint16_t port,
+                                 const std::function<void(uint16_t)>& on_listening,
+                                 const std::stop_token& stop_token)
 {
     const auto listener = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (listener == -1)
@@ -173,21 +178,69 @@ int TCPConnection::get_accept_fd(const std::uint16_t port, const std::function<v
         }
 
         // Once a connection can be accepted with the blocking accept, clean up and return the FD of the connection.
-        int fd;
-        do {
-            fd = accept(listener, nullptr, nullptr);
-        } while (fd == -1 && errno == EINTR);
-
-        if (fd == -1)
-            throw std::system_error(errno, std::generic_category(), "accept");
-
-        close(listener);
-        return fd;
-
+        while (true)
+            if (const auto connection_fd = polling_accept(listener, stop_token); connection_fd != -1) {
+                close(listener);
+                return connection_fd;
+            }
     } catch (...) {
         close(listener);
         throw;
     }
+
+    std::unreachable();
+}
+
+int TCPConnection::polling_accept(const int listener, const std::stop_token& stop_token)
+{
+    const auto indicate_cancellation = [] {
+        throw std::system_error(std::make_error_code(std::errc::operation_canceled), "accept cancelled");
+    };
+
+    // If a stop has already been requested, don't even start.
+    if (stop_token.stop_requested())
+        indicate_cancellation();
+
+    pollfd descriptor{.fd = listener, .events = POLLIN, .revents = 0};
+
+    static constexpr int poll_interval_ms = 50;
+    int poll_result;
+
+    // Poll at fixed intervals until a stop has been requested, or some low-level error occurred.
+    do {
+        poll_result = poll(&descriptor, 1, poll_interval_ms);
+    } while (poll_result == -1 && errno == EINTR && !stop_token.stop_requested());
+
+    if (stop_token.stop_requested())
+        indicate_cancellation();
+
+    if (poll_result == -1)
+        throw std::system_error(errno, std::generic_category(), "poll");
+
+    if (poll_result == 0)
+        return -1;
+
+    if ((descriptor.revents & (POLLERR | POLLHUP | POLLNVAL)) != 0)
+        throw std::system_error(std::make_error_code(std::errc::io_error), "listening socket failed");
+
+    if ((descriptor.revents & POLLIN) == 0)
+        return -1;
+
+    // Attempt to connect until a stop has been requested, connection is established, or an error occurs.
+    int connection = -1;
+
+    do {
+        connection = accept(listener, nullptr, nullptr);
+    } while (connection == -1 && errno == EINTR && !stop_token.stop_requested());
+
+    if (connection == -1) {
+        if (stop_token.stop_requested())
+            indicate_cancellation();
+
+        throw std::system_error(errno, std::generic_category(), "accept");
+    }
+
+    return connection;
 }
 
 } // namespace firestorm
