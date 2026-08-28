@@ -16,10 +16,10 @@ namespace firestorm
 
 AsyncFrameSink::AsyncFrameSink(const std::string_view host,
                                const std::uint16_t port,
-                               const std::size_t maximum_buffered_bytes) :
-    host(host),
-    port(port),
-    maximum_buffered_bytes(maximum_buffered_bytes)
+                               const std::size_t maximum_buffered_bytes)
+    : host(host),
+      port(port),
+      maximum_buffered_bytes(maximum_buffered_bytes)
 {
     if (maximum_buffered_bytes == 0)
         throw std::invalid_argument("AsyncFrameSink cannot have an empty buffer.");

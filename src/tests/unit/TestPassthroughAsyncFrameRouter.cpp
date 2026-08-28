@@ -72,14 +72,12 @@ void reject_empty_frames(TestHarness& harness)
     PassthroughAsyncFrameRouter router;
 
     static constexpr std::array<std::byte, 3> empty_prefix{};
-    constexpr EthernetFrameView empty{
-        .bytes = {},
-        .src_mac_prefix = empty_prefix,
-        .dst_mac_prefix = empty_prefix,
-        .ip_header = {},
-        .ip_payload = {},
-        .ip_protocol = 0
-    };
+    constexpr EthernetFrameView empty{.bytes = {},
+                                      .src_mac_prefix = empty_prefix,
+                                      .dst_mac_prefix = empty_prefix,
+                                      .ip_header = {},
+                                      .ip_payload = {},
+                                      .ip_protocol = 0};
 
     CHECK_THROWS(router.route(empty), std::invalid_argument);
     router.drain_and_report();

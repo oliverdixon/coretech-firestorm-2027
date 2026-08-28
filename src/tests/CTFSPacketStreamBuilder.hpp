@@ -31,7 +31,6 @@ namespace firestorm::test
 class CTFSPacketStreamBuilder
 {
 public:
-
     /**
      * Options used when constructing a new record.
      *

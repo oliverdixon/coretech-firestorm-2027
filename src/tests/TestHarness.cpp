@@ -57,7 +57,8 @@ int TestHarness::run(const int argc, const char* const* const argv, const std::i
         try {
             function(harness);
         } catch (const std::exception& exception) {
-            harness.report_failure(std::string{"Unhandled exception: "} + exception.what(), std::source_location::current());
+            harness.report_failure(std::string{"Unhandled exception: "} + exception.what(),
+                                   std::source_location::current());
         } catch (...) {
             harness.report_failure("Unhandled non-standard exception.", std::source_location::current());
         }

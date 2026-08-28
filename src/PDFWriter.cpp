@@ -59,15 +59,15 @@ void PDFWriter::validate_pdf_stream(const std::span<const CTFSPacket> packets)
     // Verify that the last non-empty bytes within the last 1024 section is the PDF EOF marker.
     constexpr auto is_padding = [](const std::byte b) {
         switch (b) {
-        case B{'\0'}:
-        case B{' '}:
-        case B{'\t'}:
-        case B{'\r'}:
-        case B{'\n'}:
-        case B{'\f'}:
-            return true;
-        default:
-            return false;
+            case B{'\0'}:
+            case B{' '}:
+            case B{'\t'}:
+            case B{'\r'}:
+            case B{'\n'}:
+            case B{'\f'}:
+                return true;
+            default:
+                return false;
         }
     };
 

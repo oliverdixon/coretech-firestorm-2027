@@ -9,5 +9,4 @@
 * Complete Doxygen except deleted member functions.
 * Complete README (regenerate sample invocations).
 * Add clang-tidy and resolve warnings
-* Fix formatting
 * Sanitise with iwyu.

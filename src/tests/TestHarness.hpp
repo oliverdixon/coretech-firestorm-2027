@@ -178,7 +178,8 @@ public:
      *
      * @return Concatenated @p buffers
      */
-    template <typename... Buffers> static std::vector<std::byte> concatenate(const Buffers&... buffers)
+    template <typename... Buffers>
+    static std::vector<std::byte> concatenate(const Buffers&... buffers)
     {
         std::vector<std::byte> result;
         result.reserve((std::size_t{0} + ... + buffers.size()));
@@ -213,7 +214,8 @@ private:
      *
      * @return Human-readable representation of @p value.
      */
-    template <typename T> static std::string try_serialise(const T& value)
+    template <typename T>
+    static std::string try_serialise(const T& value)
     {
         if constexpr (requires(std::ostream& stream, const T& item) { stream << item; }) {
             std::ostringstream output;

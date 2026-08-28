@@ -24,9 +24,9 @@ bool operator==(const CTFSPacket& lhs, const CTFSPacket& rhs) noexcept
 
 CTFSPacket::CTFSPacket(const std::uint16_t sequence_number,
                        const std::uint8_t file_id,
-                       const std::span<const std::byte> payload) :
-    sequence_number(sequence_number),
-    file_id(file_id)
+                       const std::span<const std::byte> payload)
+    : sequence_number(sequence_number),
+      file_id(file_id)
 {
     this->payload.assign(payload.cbegin(), payload.cend());
 }

@@ -120,12 +120,8 @@ void reject_partial_header(TestHarness& harness)
 void reject_bad_checksum(TestHarness& harness)
 {
     const std::string payload = "%PDF-test document\n%%EOF";
-    const auto encoded_packet = CTFSPacketStreamBuilder::make_ctfs_record({
-        .sequence_number = 0,
-        .file_id = 1,
-        .payload = std::as_bytes(std::span{payload}),
-        .checksum = 0xDEADBEEF
-    });
+    const auto encoded_packet = CTFSPacketStreamBuilder::make_ctfs_record(
+        {.sequence_number = 0, .file_id = 1, .payload = std::as_bytes(std::span{payload}), .checksum = 0xDEADBEEF});
 
     TrafficDecoder decoder(true);
     CHECK_THROWS(decoder.consume(encoded_packet,
@@ -325,11 +321,10 @@ void decoder_can_recover(TestHarness& harness)
     const std::string bad_pl = "bad";
     const std::string good_pl = "good";
 
-    const auto bad = CTFSPacketStreamBuilder::make_ctfs_record(
-        {.sequence_number = 0xAA,
-         .file_id = 0xBB,
-         .payload = std::as_bytes(std::span{bad_pl}),
-         .checksum = 0xDEADBEEF});
+    const auto bad = CTFSPacketStreamBuilder::make_ctfs_record({.sequence_number = 0xAA,
+                                                                .file_id = 0xBB,
+                                                                .payload = std::as_bytes(std::span{bad_pl}),
+                                                                .checksum = 0xDEADBEEF});
 
     const auto good = CTFSPacketStreamBuilder::make_ctfs_record(
         {.sequence_number = 0xCC, .file_id = 0xDD, .payload = std::as_bytes(std::span{good_pl})});

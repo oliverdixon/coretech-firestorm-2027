@@ -3,15 +3,20 @@ Language: Cpp
 BasedOnStyle: LLVM
 Standard: Latest
 
+# General
 IndentWidth: 4
 TabWidth: 4
 UseTab: Never
 ContinuationIndentWidth: 4
 ColumnLimit: 120
 
-AccessModifierOffset: -4
-NamespaceIndentation: None
+MaxEmptyLinesToKeep: 2
+KeepEmptyLines:
+  AtStartOfFile: false
+  AtEndOfFile: false
+  AtStartOfBlock: false
 
+# Braces
 BreakBeforeBraces: Custom
 BraceWrapping:
   AfterClass: true
@@ -27,6 +32,7 @@ BraceWrapping:
   SplitEmptyRecord: false
   SplitEmptyNamespace: false
 
+# Short constructs
 AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
@@ -34,32 +40,99 @@ AllowShortBlocksOnASingleLine: Never
 AllowShortEnumsOnASingleLine: false
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortLambdasOnASingleLine: None
+AllowShortNamespacesOnASingleLine: false
 
+# Function calls and parameters
 BinPackArguments: false
 BinPackParameters: OnePerLine
-AllowAllArgumentsOnNextLine: false
-AllowAllParametersOfDeclarationOnNextLine: false
+
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+
 BreakFunctionDefinitionParameters: false
 
-AlignAfterOpenBracket: true
-BreakAfterOpenBracketBracedList: true
-BreakBeforeCloseBracketBracedList: true
-BreakAfterOpenBracketFunction: false
-BreakAfterOpenBracketIf: true
-BreakBeforeCloseBracketFunction: false
-BreakBeforeCloseBracketIf: true
+# Return types
 BreakAfterReturnType: Automatic
 PenaltyReturnTypeOnItsOwnLine: 1000000
 
-BreakConstructorInitializers: AfterColon
+# Parentheses and wrapping
+AlignAfterOpenBracket: true
+
+BreakAfterOpenBracketBracedList: false
+BreakBeforeCloseBracketBracedList: false
+
+BreakAfterOpenBracketFunction: false
+BreakBeforeCloseBracketFunction: false
+
+BreakAfterOpenBracketIf: false
+BreakBeforeCloseBracketIf: false
+
+BreakAfterOpenBracketLoop: false
+BreakBeforeCloseBracketLoop: false
+
+BreakAfterOpenBracketSwitch: false
+BreakBeforeCloseBracketSwitch: false
+
+# Expressions
+AlignOperands: Align
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+
+# Constructors
+BreakConstructorInitializers: BeforeColon
 ConstructorInitializerIndentWidth: 4
 PackConstructorInitializers: Never
 
+# Inheritance
+BreakInheritanceList: BeforeColon
+
+# Pointers and references
+DerivePointerAlignment: false
 PointerAlignment: Left
 ReferenceAlignment: Left
 
+# Spacing
+SpaceBeforeParens: ControlStatements
+SpaceAfterCStyleCast: false
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeSquareBrackets: false
+SpaceBeforeAssignmentOperators: true
+
+SpacesInAngles: Never
+SpacesInParens: Never
+SpacesInSquareBrackets: false
+
+# Initializer lists
+Cpp11BracedListStyle: FunctionCall
+BinPackLongBracedList: false
+InsertTrailingCommas: None
+
+# Alignment
+AlignConsecutiveAssignments: None
+AlignConsecutiveDeclarations: None
+
+# Preserve manually aligned trailing comments, particularly Doxygen ///< comments.
+AlignTrailingComments:
+  Kind: Leave
+  OverEmptyLines: 1
+
+# Switch statements
+IndentCaseLabels: true
+IndentCaseBlocks: false
+
+# Access modifiers
+AccessModifierOffset: -4
+EmptyLineBeforeAccessModifier: LogicalBlock
+EmptyLineAfterAccessModifier: Never
+
+# Namespaces
+NamespaceIndentation: None
+FixNamespaceComments: true
+
+# Includes
 SortIncludes: CaseSensitive
 IncludeBlocks: Regroup
+
 IncludeCategories:
   - Regex: '^<.*\.h>'
     Priority: 1
@@ -68,25 +141,17 @@ IncludeCategories:
   - Regex: '^".*"'
     Priority: 3
 
-SpaceBeforeParens: ControlStatements
-SpaceAfterCStyleCast: false
-SpacesInParentheses: false
-SpacesInAngles: "false"
-SpaceBeforeCpp11BracedList: false
-Cpp11BracedListStyle: "true"
+# Definition spacing
+SeparateDefinitionBlocks: Leave
 
-AlignConsecutiveAssignments: None
-AlignConsecutiveDeclarations: None
-AlignOperands: Align
-AlignTrailingComments:
-  Kind: Always
-  OverEmptyLines: 1
-
-DerivePointerAlignment: false
-InsertTrailingCommas: None
-
-SeparateDefinitionBlocks: Always
-FixNamespaceComments: true
+# Leave comments and Doxygen formatting alone.
 ReflowComments: Always
+
+# Templates and concepts
+BreakTemplateDeclarations: Yes
 RequiresClausePosition: OwnLine
 IndentRequiresClause: true
+RequiresExpressionIndentation: OuterScope
+
+# Lambdas
+LambdaBodyIndentation: Signature

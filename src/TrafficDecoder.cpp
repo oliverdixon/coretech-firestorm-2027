@@ -12,8 +12,8 @@
 namespace firestorm
 {
 
-TrafficDecoder::TrafficDecoder(const bool reject_bad_checksums) :
-    reject_bad_checksums(reject_bad_checksums)
+TrafficDecoder::TrafficDecoder(const bool reject_bad_checksums)
+    : reject_bad_checksums(reject_bad_checksums)
 {
 }
 
@@ -35,10 +35,8 @@ std::uint16_t TrafficDecoder::decode_big_endian(const std::span<const std::byte,
 
 std::uint32_t TrafficDecoder::decode_big_endian(const std::span<const std::byte, 4> bytes) noexcept
 {
-    return std::to_integer<std::uint32_t>(bytes[0]) << 24 |
-           std::to_integer<std::uint32_t>(bytes[1]) << 16 |
-           std::to_integer<std::uint32_t>(bytes[2]) << 8 |
-           std::to_integer<std::uint32_t>(bytes[3]);
+    return std::to_integer<std::uint32_t>(bytes[0]) << 24 | std::to_integer<std::uint32_t>(bytes[1]) << 16 |
+           std::to_integer<std::uint32_t>(bytes[2]) << 8 | std::to_integer<std::uint32_t>(bytes[3]);
 }
 
 void TrafficDecoder::compact()

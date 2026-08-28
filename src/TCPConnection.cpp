@@ -22,15 +22,15 @@
 namespace firestorm
 {
 
-TCPConnection::TCPConnection(const std::string_view host, const std::uint16_t port) :
-    fd(get_connection_fd(host, port))
+TCPConnection::TCPConnection(const std::string_view host, const std::uint16_t port)
+    : fd(get_connection_fd(host, port))
 {
 }
 
 TCPConnection::TCPConnection(const std::uint16_t port,
                              const std::function<void(std::uint16_t)>& on_listening,
-                             const std::stop_token& stop_token) :
-    fd(get_accept_fd(port, on_listening, stop_token))
+                             const std::stop_token& stop_token)
+    : fd(get_accept_fd(port, on_listening, stop_token))
 {
 }
 
@@ -40,8 +40,8 @@ TCPConnection::~TCPConnection() noexcept
         close(fd);
 }
 
-TCPConnection::TCPConnection(TCPConnection&& other) noexcept :
-    fd(std::exchange(other.fd, -1))
+TCPConnection::TCPConnection(TCPConnection&& other) noexcept
+    : fd(std::exchange(other.fd, -1))
 {
 }
 
@@ -104,16 +104,14 @@ std::size_t TCPConnection::write(const std::span<const std::byte> data) const
 
 int TCPConnection::get_connection_fd(const std::string_view host, const std::uint16_t port)
 {
-    constexpr addrinfo hints{
-        .ai_flags = 0,
-        .ai_family = AF_UNSPEC,
-        .ai_socktype = SOCK_STREAM,
-        .ai_protocol = IPPROTO_TCP,
-        .ai_addrlen = 0,
-        .ai_addr = nullptr,
-        .ai_canonname = nullptr,
-        .ai_next = nullptr
-    };
+    constexpr addrinfo hints{.ai_flags = 0,
+                             .ai_family = AF_UNSPEC,
+                             .ai_socktype = SOCK_STREAM,
+                             .ai_protocol = IPPROTO_TCP,
+                             .ai_addrlen = 0,
+                             .ai_addr = nullptr,
+                             .ai_canonname = nullptr,
+                             .ai_next = nullptr};
 
     const std::string host_str{host};
     const auto port_str = std::to_string(port);
@@ -154,12 +152,10 @@ int TCPConnection::get_accept_fd(const std::uint16_t port,
         if (setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &enabled, sizeof(enabled)) == -1)
             throw std::system_error(errno, std::generic_category(), "setsockopt");
 
-        sockaddr_in address{
-            .sin_family = AF_INET,
-            .sin_port = htons(port),
-            .sin_addr = {.s_addr = htonl(INADDR_LOOPBACK)},
-            .sin_zero = {}
-        };
+        sockaddr_in address{.sin_family = AF_INET,
+                            .sin_port = htons(port),
+                            .sin_addr = {.s_addr = htonl(INADDR_LOOPBACK)},
+                            .sin_zero = {}};
 
         // Bind the listener to the address and listen.
         if (bind(listener, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == -1)

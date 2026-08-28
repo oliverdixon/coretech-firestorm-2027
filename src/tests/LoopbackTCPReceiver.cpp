@@ -14,8 +14,8 @@
 namespace firestorm::test
 {
 
-LoopbackTCPReceiver::LoopbackTCPReceiver() :
-    LoopbackTCPReceiver(0)
+LoopbackTCPReceiver::LoopbackTCPReceiver()
+    : LoopbackTCPReceiver(0)
 {
 }
 
@@ -28,7 +28,7 @@ LoopbackTCPReceiver::LoopbackTCPReceiver(const std::uint16_t requested_port)
         receive(stop_token, ready, requested_port);
     });
 
-    assigned_port = port_future.get(); // Wait for the future to be satisfied.
+    assigned_port = port_future.get();  // Wait for the future to be satisfied.
 }
 
 LoopbackTCPReceiver::~LoopbackTCPReceiver() noexcept
@@ -70,16 +70,14 @@ void LoopbackTCPReceiver::receive(const std::stop_token& stop_token,
     bool listening_announced = false;
 
     try {
-        const TCPConnection connection{
-            requested_port,
-            [&listening_announced, &ready](const std::uint16_t port) {
-                if (!listening_announced) {
-                                         ready->set_value(port);
-                                         listening_announced = true;
-                                     }
-                                 },
-            stop_token
-        };
+        const TCPConnection connection{requested_port,
+                                       [&listening_announced, &ready](const std::uint16_t port) {
+                                           if (!listening_announced) {
+                                               ready->set_value(port);
+                                               listening_announced = true;
+                                           }
+                                       },
+                                       stop_token};
 
         if (stop_token.stop_requested())
             return;

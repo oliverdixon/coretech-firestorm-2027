@@ -83,8 +83,8 @@ public:
         frame[12] = std::byte{0x08};
         frame[13] = std::byte{0x00};
 
-        frame[14] = std::byte{0x45};               // IPv4, 20-byte header
-        frame[23] = std::byte{transport_protocol}; // Transport protocol
+        frame[14] = std::byte{0x45};                // IPv4, 20-byte header
+        frame[23] = std::byte{transport_protocol};  // Transport protocol
 
         // Include a NUL in the payload so exact binary forwarding is exercised
         frame[40] = std::byte{0x00};
@@ -101,14 +101,12 @@ public:
      */
     static constexpr EthernetFrameView make_frame_view(const std::span<const std::byte, 64> payload) noexcept
     {
-        return {
-            .bytes = payload,
-            .src_mac_prefix = payload.subspan<6, 3>(),
-            .dst_mac_prefix = payload.first<3>(),
-            .ip_header = payload.subspan<14, 20>(),
-            .ip_payload = payload.subspan<34>(),
-            .ip_protocol = std::to_integer<std::uint8_t>(payload[23])
-        };
+        return {.bytes = payload,
+                .src_mac_prefix = payload.subspan<6, 3>(),
+                .dst_mac_prefix = payload.first<3>(),
+                .ip_header = payload.subspan<14, 20>(),
+                .ip_payload = payload.subspan<34>(),
+                .ip_protocol = std::to_integer<std::uint8_t>(payload[23])};
     }
 };
 

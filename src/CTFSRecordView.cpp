@@ -21,9 +21,9 @@ std::uint32_t CTFSPacketView::compute_checksum() const noexcept
         accumulator = std::rotl(accumulator + word, 1);
     };
 
-    add_word(ctfs);                                                            // Word 1: "CTFS"
+    add_word(ctfs);                                                             // Word 1: "CTFS"
     add_word(static_cast<std::uint32_t>(sequence_number) << 16 | data_length); // Word 2: Sequence No. and Data Length
-    add_word(static_cast<std::uint32_t>(file_id) << 24 | ctfs >> 8);           // Word 3: File ID and "CTF" (CTFS head)
+    add_word(static_cast<std::uint32_t>(file_id) << 24 | ctfs >> 8); // Word 3: File ID and "CTF" (CTFS head)
     add_word(ctfs << 24 | std::to_integer<std::uint32_t>(padding[0]) << 16 |
              std::to_integer<std::uint32_t>(padding[1]) << 8 |
              std::to_integer<std::uint32_t>(padding[2])); // Word 4: "S" (CTFS tail) and padding
@@ -37,22 +37,22 @@ std::uint32_t CTFSPacketView::compute_checksum() const noexcept
         }
 
     switch (payload.size() - offset) {
-    case 1:
-        add_word(std::to_integer<std::uint32_t>(payload[offset]) << 24);
-        break;
-    case 2:
-        add_word(std::to_integer<std::uint32_t>(payload[offset]) << 24 |
-                 std::to_integer<std::uint32_t>(payload[offset + 1]) << 16);
-        break;
-    case 3:
-        add_word(std::to_integer<std::uint32_t>(payload[offset]) << 24 |
-                 std::to_integer<std::uint32_t>(payload[offset + 1]) << 16 |
-                 std::to_integer<std::uint32_t>(payload[offset + 2]) << 8);
-        break;
-    case 4:
-        add_word(get_word(payload.last<4>()));
-        break;
-    default:;
+        case 1:
+            add_word(std::to_integer<std::uint32_t>(payload[offset]) << 24);
+            break;
+        case 2:
+            add_word(std::to_integer<std::uint32_t>(payload[offset]) << 24 |
+                     std::to_integer<std::uint32_t>(payload[offset + 1]) << 16);
+            break;
+        case 3:
+            add_word(std::to_integer<std::uint32_t>(payload[offset]) << 24 |
+                     std::to_integer<std::uint32_t>(payload[offset + 1]) << 16 |
+                     std::to_integer<std::uint32_t>(payload[offset + 2]) << 8);
+            break;
+        case 4:
+            add_word(get_word(payload.last<4>()));
+            break;
+        default:;
     }
 
     return accumulator;

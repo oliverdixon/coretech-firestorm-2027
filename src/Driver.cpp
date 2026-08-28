@@ -24,7 +24,8 @@
 namespace
 {
 
-template <class... Ts> struct overloads : Ts...
+template <class... Ts>
+struct overloads : Ts...
 {
     using Ts::operator()...;
 };
@@ -34,8 +35,8 @@ template <class... Ts> struct overloads : Ts...
 namespace firestorm
 {
 
-Driver::Driver(const bool classified_policy, const bool drop_bad_checksums) :
-    drop_bad_checksums(drop_bad_checksums)
+Driver::Driver(const bool classified_policy, const bool drop_bad_checksums)
+    : drop_bad_checksums(drop_bad_checksums)
 {
     if (classified_policy)
         frame_router = std::make_unique<ClassifiedAsyncFrameRouter>();
@@ -69,7 +70,8 @@ void Driver::run()
 
         try {
             // Set up the destination file.
-            const auto path = std::filesystem::current_path() / std::format("{}.pdf", static_cast<unsigned int>(file_id));
+            const auto path =
+                std::filesystem::current_path() / std::format("{}.pdf", static_cast<unsigned int>(file_id));
             std::ofstream output_file(path, std::ios::binary | std::ios::out);
             output_file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
 

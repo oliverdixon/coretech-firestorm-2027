@@ -30,10 +30,10 @@ void Logger::log([[maybe_unused]] const Level level,
 std::string_view Logger::level_to_string(const Level level)
 {
     switch (level) {
-    case Level::Info:
-        return "Info";
-    case Level::Warning:
-        return "Warn";
+        case Level::Info:
+            return "Info";
+        case Level::Warning:
+            return "Warn";
     }
 
     std::unreachable();

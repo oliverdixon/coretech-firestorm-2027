@@ -20,10 +20,10 @@ namespace firestorm
 ClassifiedAsyncFrameRouter::ClassifiedAsyncFrameRouter(const std::string_view host,
                                                        const std::uint16_t tcp_port,
                                                        const std::uint16_t monitor_port,
-                                                       const std::uint16_t udp_port) :
-    tcp_sink(host, tcp_port),
-    monitor_sink(host, monitor_port),
-    udp_sink(host, udp_port)
+                                                       const std::uint16_t udp_port)
+    : tcp_sink(host, tcp_port),
+      monitor_sink(host, monitor_port),
+      udp_sink(host, udp_port)
 {
 }
 
@@ -32,19 +32,19 @@ void ClassifiedAsyncFrameRouter::route(const EthernetFrameView& view)
     const auto monitored = has_monitored_destination(view.dst_mac_prefix);
     const auto malicious = has_malicious_source(view.src_mac_prefix);
 
-    AsyncFrameSink* primary_sink = nullptr; // Primary sink, if any, to which the frame should be routed.
+    AsyncFrameSink* primary_sink = nullptr;  // Primary sink, if any, to which the frame should be routed.
 
     if (malicious)
         ++malicious_count;
     else
         switch (view.ip_protocol) {
-        case IPPROTO_TCP:
-            primary_sink = &tcp_sink;
-            break;
-        case IPPROTO_UDP:
-            primary_sink = &udp_sink;
-            break;
-        default:;
+            case IPPROTO_TCP:
+                primary_sink = &tcp_sink;
+                break;
+            case IPPROTO_UDP:
+                primary_sink = &udp_sink;
+                break;
+            default:;
         }
 
     // If we don't have anywhere to route it, bail out now.
