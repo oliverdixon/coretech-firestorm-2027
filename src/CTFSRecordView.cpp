@@ -17,7 +17,7 @@ namespace firestorm
 std::uint32_t CTFSPacketView::compute_checksum() const noexcept
 {
     static constexpr std::uint32_t ctfs =
-        (std::uint32_t{'C'} << 24U) | (std::uint32_t{'T'} << 16U) | (std::uint32_t{'F'} << 8U) | std::uint32_t{'C'};
+        (std::uint32_t{'C'} << 24U) | (std::uint32_t{'T'} << 16U) | (std::uint32_t{'F'} << 8U) | std::uint32_t{'S'};
 
     std::uint32_t accumulator = 0;
     const auto add_word = [&accumulator](const std::uint32_t word) {
