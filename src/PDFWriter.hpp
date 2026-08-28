@@ -27,14 +27,15 @@ public:
     /**
      * Writes captured payloads in ascending sequence-number order for a single file.
      *
-     * @param output Output file destination.
+     * @param output Output destination.
      * @param packets Ordered set of packets required to construct a PDF file at @p output.
      *
      * @throws std::ios_base::failure The entire PDF could not be reconstructed from @p packets.
+     * @throws std::runtime_error The assembled byte stream was empty.
      * @throws std::runtime_error The assembled byte stream does not begin with the PDF magic bytes.
      * @throws std::runtime_error The assembled byte stream does not end with the PDF EOF marker.
      */
-    static void write_pdf(std::ofstream& output, std::span<const CTFSPacket> packets);
+    static void write_pdf(std::ostream& output, std::span<const CTFSPacket> packets);
 
 private:
     /**
@@ -45,6 +46,7 @@ private:
      *
      * @param packets Ordered packets comprising the PDF byte stream.
      *
+     * @throws std::runtime_error The assembled byte stream was empty.
      * @throws std::runtime_error The assembled byte stream does not begin with the PDF magic bytes.
      * @throws std::runtime_error The assembled byte stream does not end with the PDF EOF marker.
      *

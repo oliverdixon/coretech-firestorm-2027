@@ -91,6 +91,10 @@ if (FIRESTORM_BUILD_TESTING)
 
     set(TestPDFWriter_CASES
             write_single_packet_exactly
+            write_across_packet_boundaries
+            accept_trailing_padding
+            enforce_eof_search_limit
+            reject_empty_input
     )
 
     target_link_libraries(FireStormTestCore PRIVATE FireStormCore ProjectFlags)

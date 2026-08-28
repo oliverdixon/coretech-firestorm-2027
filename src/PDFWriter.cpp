@@ -16,11 +16,11 @@
 namespace firestorm
 {
 
-void PDFWriter::write_pdf(std::ofstream& output, const std::span<const CTFSPacket> packets)
+void PDFWriter::write_pdf(std::ostream& output, const std::span<const CTFSPacket> packets)
 {
     validate_pdf_stream(packets);
 
-    std::size_t last_seq_num = -1;
+    std::int32_t last_seq_num = -1;
 
     for (const auto& packet : packets)
         if (packet.get_sequence_number() == last_seq_num)
@@ -32,11 +32,18 @@ void PDFWriter::write_pdf(std::ofstream& output, const std::span<const CTFSPacke
 
             const auto& payload = packet.observe_payload();
             output.write(reinterpret_cast<const char*>(payload.data()), static_cast<std::streamsize>(payload.size()));
+
+            if (output.fail())
+                // If output didn't have exceptions enabled by the caller, throw one here.
+                throw std::ios_base::failure("Could not write PDF payload.");
         }
 }
 
 void PDFWriter::validate_pdf_stream(const std::span<const CTFSPacket> packets)
 {
+    if (packets.empty())
+        throw std::runtime_error("Packet collection was empty.");
+
     using B = std::byte;
 
     static constexpr std::array pdf_magic_begin = {B{'%'}, B{'P'}, B{'D'}, B{'F'}, B{'-'}};

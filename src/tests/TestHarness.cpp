@@ -47,7 +47,7 @@ int TestHarness::run(const int argc, const char* const* const argv, const std::i
     }
 
     for (const auto& [id, name, function] : test_cases | std::views::filter(predicate)) {
-        std::println(std::cout, "[ RUN    ] {}: {}", id, name);
+        std::println(std::cout, "[ RUN    ] {} ({})", id, name);
         const auto failures_before = harness.failure_count;
 
         try {
@@ -59,9 +59,9 @@ int TestHarness::run(const int argc, const char* const* const argv, const std::i
         }
 
         if (harness.failure_count == failures_before)
-            std::println(std::cout, "[ OK     ] {}", name);
+            std::println(std::cout, "[ OK     ] {}", id);
         else
-            std::println(std::cout, "[ FAILED ] {}", name);
+            std::println(std::cout, "[ FAILED ] {}", id);
     }
 
     return harness.failure_count == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
