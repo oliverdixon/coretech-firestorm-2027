@@ -1,4 +1,5 @@
 /cmake-build-*
-docs
+/docs
 *.pdf
 /CMakeUserPresets.json
+__pycache__
