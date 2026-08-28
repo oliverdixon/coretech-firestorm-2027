@@ -22,12 +22,12 @@
  *
  * Runs FIRE STORM with its configured endpoints and output destination.
  *
- * Usage: `./FireStorm [--classified] [--drop-bad-checksums]`
+ * Usage: `./FireStorm [--classified] [--reject-bad-checksums]`
  *
  * In classified mode, the application will follow the MAC-based routing rules. Otherwise, all non-operational data is
  * forwarded to the primary TCP endpoint. Disabled by default.
  *
- * If bad checksums are dropped, packets reporting invalid checksums will be ignored. Disabled by default.
+ * If bad checksums are rejected, packets reporting invalid checksums will cause an error. Disabled by default.
  *
  * @param argc Number of arguments passed on the command line.
  * @param argv Argument vector.
@@ -42,25 +42,27 @@ int main(const int argc, const char* const* const argv)
 
     struct Options
     {
-        bool drop_bad_checksums = false;
+        bool reject_bad_checksums = false;
         bool classified = false;
     } options;
 
     const auto args =
         std::span{argv, static_cast<std::size_t>(argc)} | std::views::transform([](const char* const arg) {
             return std::string_view{arg};
-        });
+        }) | std::views::drop(1);
 
     for (const auto arg : args)
-        if (arg == "--drop-bad-checksums")
-            options.drop_bad_checksums = true;
+        if (arg == "--reject-bad-checksums")
+            options.reject_bad_checksums = true;
         else if (arg == "--classified")
             options.classified = true;
+        else
+            LOG_F_WARNING("Unknown argument: {}", arg);
 
     // Run the driver and report fatal errors.
 
     try {
-        Driver driver(options.classified, options.drop_bad_checksums);
+        Driver driver(options.classified, options.reject_bad_checksums);
         driver.run();
         return 0;
     } catch (const std::exception& error) {

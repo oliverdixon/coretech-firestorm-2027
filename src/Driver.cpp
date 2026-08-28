@@ -45,8 +45,8 @@ struct Overloads : Ts...
 namespace firestorm
 {
 
-Driver::Driver(const bool classified_policy, const bool drop_bad_checksums)
-    : drop_bad_checksums(drop_bad_checksums)
+Driver::Driver(const bool classified_policy, const bool reject_bad_checksums)
+    : reject_bad_checksums(reject_bad_checksums)
 {
     if (classified_policy)
         frame_router = std::make_unique<ClassifiedAsyncFrameRouter>();
@@ -61,7 +61,7 @@ void Driver::run()
     static constexpr std::uint16_t incoming_port = 5733;
 
     std::array<std::byte, std::size_t{64} * 1024> storage{};
-    TrafficDecoder decoder(drop_bad_checksums);
+    TrafficDecoder decoder(reject_bad_checksums);
 
     const TCPConnection source{incoming_port};
     const auto callback = std::bind_front(&Driver::despatch_record, this);

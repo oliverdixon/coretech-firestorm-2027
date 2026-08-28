@@ -86,7 +86,7 @@ Prior to the submission deadline, viewing the documentation requires HTTPS authe
 
 To run _FIRE STORM_ interactively, locate the `FireStorm` executable in the build directory: either
 `cmake-build-debug-app` or `cmake-build-release-app`, relative to the location of `CMakeLists.txt`. Following each
-invocation, a set of PDF documents will be produced in the executable directory.
+invocation, a set of PDF documents will be produced in the current working directory.
 
 #### Stage 1 Invocation
 
@@ -159,9 +159,8 @@ $ ctest --test-dir cmake-build-debug-tests --output-on-failure -L Integration
 
 ### Checksum Errors
 
-By default, operational packets that report invalid checksums are reported but not dropped. To ignore packets that fail
-checksum validation, pass `--drop-bad-checksums` on the command line. Note that this may lead to the reconstruction of
-invalid PDF documents on the sample data.
+By default, operational packets that report invalid checksums are reported but not dropped. To refuse packets that fail
+checksum validation, pass `--reject-bad-checksums` on the command line.
 
 ## Software and Interface Description
 

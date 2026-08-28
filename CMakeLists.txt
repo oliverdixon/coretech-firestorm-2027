@@ -59,8 +59,10 @@ add_library(FireStormCore
         src/IFrameRouter.hpp
 )
 
+target_link_libraries(FireStormCore PUBLIC ProjectFlags)
+
 add_executable(FireStorm src/app/FireStorm.cpp)
-target_link_libraries(FireStorm PRIVATE FireStormCore ProjectFlags)
+target_link_libraries(FireStorm PRIVATE FireStormCore)
 
 include(CTest)
 
@@ -130,7 +132,7 @@ if (FIRESTORM_BUILD_TESTING)
             src/tests/SampleFrameBuilders.hpp
     )
 
-    target_link_libraries(FireStormTestCore PRIVATE FireStormCore ProjectFlags)
+    target_link_libraries(FireStormTestCore PRIVATE FireStormCore)
     file(GLOB UNIT_TEST_PATHS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/tests/unit/*.cpp")
 
     # Each CPP file in src/tests/unit denotes a fixture of unit tests. An executable CMake target is produced for each

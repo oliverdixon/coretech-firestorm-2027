@@ -38,9 +38,9 @@ public:
      * one time. Note that sockets are bound lazily, so violations are not immediately apparent.
      *
      * @param classified_policy Should the AsyncFrameRouter use a classified routing policy?
-     * @param drop_bad_checksums Should invalid checksums be ignored?
+     * @param reject_bad_checksums Should invalid checksums cause an exception?
      */
-    explicit Driver(bool classified_policy, bool drop_bad_checksums);
+    explicit Driver(bool classified_policy, bool reject_bad_checksums);
 
     ~Driver() noexcept;
 
@@ -101,7 +101,7 @@ private:
      */
     void process_record(const EthernetFrameView& ethernet_frame_view);
 
-    bool drop_bad_checksums;                            /**< Should invalid checksums be ignored? */
+    bool reject_bad_checksums;                          /**< Should invalid checksums cause an exception? */
     std::unique_ptr<IFrameRouter> frame_router;         /**< Routing delegate for forwarding frame packets. */
     std::vector<std::vector<CTFSPacket>> packet_groups; /**< Unordered sets of packets, grouped by file ID. */
 };
