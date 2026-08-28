@@ -98,13 +98,13 @@ To run _FIRE STORM_ in the Stage 1 configuration, in which all non-operational d
 $ cmake-build-debug-app/FireStorm &
 $ python3 coretech/stage1/test.py --quiet
 Running test...
-[Info] src/LazyFrameSink.cpp:31 says: Established forwarding TCP connection to 127.0.0.1:5744.
-[Info] src/Driver.cpp:47 says: Reconstructed 20 packets with file ID 1 into 1.pdf.
-[Info] src/FrameRouter.cpp:82 says: Under the passthrough policy, 257 frames have been forwarded.
-[Info] src/LazyFrameSink.cpp:52 says: To the endpoint 127.0.0.1:5744, 257 frames have been sent, and 0 have been dropped.
-[Warn] src/Driver.cpp:84 says: Found CTFS packet (F#1, S#18) with bad checksum: expected 0XCDF7548D, got 0XFCE0EA3B.
+[Info] src/AsyncFrameSink.cpp:123 says: Established forwarding TCP connection to 127.0.0.1:5744.
+[Warn] src/TrafficDecoder.hpp:271 says: Found CTFS packet (F#1, S#18) with bad checksum: expected 0XCDF7548D, got 0XFCE0EA3B.
+[Info] src/Driver.cpp:90 says: Reconstructed 20 packets with File ID 1 into 1.pdf.
+[Info] src/PassthroughAsyncFrameRouter.cpp:37 says: Under the passthrough policy, 257 frames have been forwarded.
+[Info] src/PassthroughAsyncFrameRouter.cpp:38 says: To the endpoint 127.0.0.1:5744, 257 frames were sent, and 0 were dropped.
 ----------------------------------------------------------------------
-Ran 1 test in 6.003s
+Ran 1 test in 6.004s
 
 OK
 ```
@@ -119,24 +119,24 @@ program will similarly hang until data is received on 127.0.0.1:5733.
 $ cmake-build-debug-app/FireStorm --classified &
 $ python3 coretech/stage2/test.py --quiet
 Running test...
-[Info] src/LazyFrameSink.cpp:31 says: Established forwarding TCP connection to 127.0.0.1:5744.
-[Info] src/LazyFrameSink.cpp:31 says: Established forwarding TCP connection to 127.0.0.1:5745.
-[Info] src/LazyFrameSink.cpp:31 says: Established forwarding TCP connection to 127.0.0.1:5746.
-[Info] src/Driver.cpp:47 says: Reconstructed 560 packets with file ID 0 into 0.pdf.
-[Info] src/Driver.cpp:47 says: Reconstructed 739 packets with file ID 1 into 1.pdf.
-[Info] src/Driver.cpp:47 says: Reconstructed 691 packets with file ID 2 into 2.pdf.
-[Info] src/Driver.cpp:47 says: Reconstructed 227 packets with file ID 3 into 3.pdf.
-[Info] src/Driver.cpp:47 says: Reconstructed 339 packets with file ID 4 into 4.pdf.
-[Info] src/FrameRouter.cpp:88 says: Under the classifying policy, 257 frames have been routed, of which 41 were dropped for being malicious. In particular:
-[Info] src/LazyFrameSink.cpp:52 says: To the endpoint 127.0.0.1:5744, 193 frames have been sent, and 0 have been dropped.
-[Info] src/LazyFrameSink.cpp:52 says: To the endpoint 127.0.0.1:5745, 93 frames have been sent, and 0 have been dropped.
-[Info] src/LazyFrameSink.cpp:52 says: To the endpoint 127.0.0.1:5746, 3 frames have been sent, and 0 have been dropped.
-[Warn] src/Driver.cpp:84 says: Found CTFS packet (F#2, S#689) with bad checksum: expected 0XB3274CBE, got 0XC740DA9D.
-[Warn] src/Driver.cpp:84 says: Found CTFS packet (F#4, S#337) with bad checksum: expected 0X48D1243B, got 0X48D1252B.
-[Warn] src/Driver.cpp:84 says: Found CTFS packet (F#3, S#225) with bad checksum: expected 0X16CE432F, got 0X16CE441F.
-[Warn] src/Driver.cpp:84 says: Found CTFS packet (F#0, S#558) with bad checksum: expected 0X67976CB8, got 0X30211A91.
+[Info] src/AsyncFrameSink.cpp:123 says: Established forwarding TCP connection to 127.0.0.1:5744.
+[Info] src/AsyncFrameSink.cpp:123 says: Established forwarding TCP connection to 127.0.0.1:5745.
+[Info] src/AsyncFrameSink.cpp:123 says: Established forwarding TCP connection to 127.0.0.1:5746.
+[Warn] src/TrafficDecoder.hpp:271 says: Found CTFS packet (F#2, S#689) with bad checksum: expected 0XB3274CBE, got 0XC740DA9D.
+[Warn] src/TrafficDecoder.hpp:271 says: Found CTFS packet (F#4, S#337) with bad checksum: expected 0X48D1243B, got 0X48D1252B.
+[Warn] src/TrafficDecoder.hpp:271 says: Found CTFS packet (F#3, S#225) with bad checksum: expected 0X16CE432F, got 0X16CE441F.
+[Warn] src/TrafficDecoder.hpp:271 says: Found CTFS packet (F#0, S#558) with bad checksum: expected 0X67976CB8, got 0X30211A91.
+[Info] src/Driver.cpp:90 says: Reconstructed 560 packets with File ID 0 into 0.pdf.
+[Info] src/Driver.cpp:90 says: Reconstructed 739 packets with File ID 1 into 1.pdf.
+[Info] src/Driver.cpp:90 says: Reconstructed 691 packets with File ID 2 into 2.pdf.
+[Info] src/Driver.cpp:90 says: Reconstructed 227 packets with File ID 3 into 3.pdf.
+[Info] src/Driver.cpp:90 says: Reconstructed 339 packets with File ID 4 into 4.pdf.
+[Info] src/ClassifiedAsyncFrameRouter.cpp:77 says: Under the classifying policy, 210 frames have been routed, of which 55 were excluded from their primary route.
+[Info] src/ClassifiedAsyncFrameRouter.cpp:85 says: To the endpoint 127.0.0.1:5744, 193 frames were sent, and 0 were dropped.
+[Info] src/ClassifiedAsyncFrameRouter.cpp:85 says: To the endpoint 127.0.0.1:5745, 93 frames were sent, and 0 were dropped.
+[Info] src/ClassifiedAsyncFrameRouter.cpp:85 says: To the endpoint 127.0.0.1:5746, 3 frames were sent, and 0 were dropped.
 ----------------------------------------------------------------------
-Ran 1 test in 6.039s
+Ran 1 test in 6.038s
 
 OK
 ```
