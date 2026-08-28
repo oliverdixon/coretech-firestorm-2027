@@ -65,6 +65,8 @@ public:
      */
     [[nodiscard]] std::uint16_t get_assigned_port() const noexcept;
 
+    [[nodiscard]] std::span<const std::byte> observe_received_bytes() const;
+
 private:
     // TODO document.
     void receive(const std::stop_token& stop_token, std::shared_ptr<std::promise<std::uint16_t>> ready);

@@ -106,9 +106,13 @@ if (FIRESTORM_BUILD_TESTING)
             propagate_output_failures
     )
 
-    set(TestPassthroughAsyncFrameRouter_CASES) # TODO
-
     set(TestPassthroughAsyncFrameRouter_CASES
+            routes_single_frame
+            routes_frames_in_order
+            reject_empty_frames
+    )
+
+    set(TestPassthroughAsyncFrameRouter_DEPENDENCIES
             src/tests/LoopbackTCPReceiver.cpp
             src/tests/LoopbackTCPReceiver.hpp
     )

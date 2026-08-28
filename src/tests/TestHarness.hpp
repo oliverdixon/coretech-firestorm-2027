@@ -14,6 +14,7 @@
 #include <source_location>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace firestorm::test
 {
@@ -166,6 +167,24 @@ public:
      * @return @c EXIT_SUCCESS if every test case passes; @c EXIT_FAILURE otherwise, or if no test cases were selected.
      */
     static int run(int argc, const char* const* argv, std::initializer_list<TestCase> test_cases);
+
+    /**
+     * Concatenate ranges into a single vector of bytes.
+     *
+     * This is a shim for pre-C++26 standard libraries that do not provide @c std::views::concatenate.
+     *
+     * @tparam Buffers Types of constituent ranges
+     * @param buffers Constituent ranges
+     *
+     * @return Concatenated @p buffers
+     */
+    template <typename... Buffers> static std::vector<std::byte> concatenate(const Buffers&... buffers)
+    {
+        std::vector<std::byte> result;
+        result.reserve((std::size_t{0} + ... + buffers.size()));
+        (result.insert(result.end(), buffers.begin(), buffers.end()), ...);
+        return result;
+    }
 
 private:
     /**

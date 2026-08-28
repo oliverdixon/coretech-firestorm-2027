@@ -35,24 +35,6 @@ void capture_ctfs_packet(TestHarness& harness, std::vector<CTFSPacket>& output, 
 }
 
 /**
- * Concatenate ranges into a single vector of bytes.
- *
- * This is a shim for pre-C++26 standard libraries that do not provide @c std::views::concatenate.
- *
- * @tparam Buffers Types of constituent ranges
- * @param buffers Constituent ranges
- *
- * @return Concatenated @p buffers
- */
-template <typename... Buffers> std::vector<std::byte> concatenate(const Buffers&... buffers)
-{
-    std::vector<std::byte> result;
-    result.reserve((std::size_t{0} + ... + buffers.size()));
-    (result.insert(result.end(), buffers.begin(), buffers.end()), ...);
-    return result;
-}
-
-/**
  * @test Verifies that a single compliant CTFSPacket is correctly decoded by the TrafficDecoder.
  *
  * @param harness Active harness.
@@ -245,7 +227,7 @@ void decode_coalesced_records(TestHarness& harness)
     const auto third = CTFSPacketStreamBuilder::make_ctfs_record(
         {.sequence_number = 2, .payload = std::as_bytes(std::span{third_pl})});
 
-    const auto stream = concatenate(first, second, third);
+    const auto stream = TestHarness::concatenate(first, second, third);
 
     TrafficDecoder decoder;
     std::vector<CTFSPacket> decoded;
@@ -352,7 +334,7 @@ void decoder_can_recover(TestHarness& harness)
     const auto good = CTFSPacketStreamBuilder::make_ctfs_record(
         {.sequence_number = 0xCC, .file_id = 0xDD, .payload = std::as_bytes(std::span{good_pl})});
 
-    const auto stream = concatenate(bad, good);
+    const auto stream = TestHarness::concatenate(bad, good);
 
     TrafficDecoder decoder;
     std::vector<CTFSPacket> decoded;
@@ -391,7 +373,7 @@ void compaction_preserves_partial(TestHarness& harness)
     const auto final = CTFSPacketStreamBuilder::make_ctfs_record(
         {.sequence_number = 1, .payload = std::as_bytes(std::span{final_pl})});
 
-    const auto stream = concatenate(large, final);
+    const auto stream = TestHarness::concatenate(large, final);
     const auto split_pos = large.size() + 4;
 
     TrafficDecoder decoder;

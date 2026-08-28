@@ -143,7 +143,7 @@ OK
 
 ### Running the Unit and Integration Tests
 
-Alternatively, if the test suite was built as in [_Building the Test Suite_](#building-the-test-suite), unit and
+Alternatively, if the test suite was built as in [_Building the Test Suite_](#building-the-test-suites), unit and
 integration tests can be run with CTest:
 
 ```
