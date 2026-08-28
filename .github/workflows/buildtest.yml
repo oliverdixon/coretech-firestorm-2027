@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   test-firestorm:
-    runs-on: [linux]
+    runs-on: [ linux ]
 
     steps:
       - name: Checkout
@@ -32,15 +32,23 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
+          cmake --preset debug-tests
           cmake --preset release-tests
 
       - name: Build tests
         shell: bash
         run: |
           set -Eeuo pipefail
+          cmake --build cmake-build-debug-tests
           cmake --build cmake-build-release-tests
 
-      - name: Run tests
+      - name: Run debug tests
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ctest --test-dir cmake-build-debug-tests --output-on-failure
+
+      - name: Run release tests
         shell: bash
         run: |
           set -Eeuo pipefail
