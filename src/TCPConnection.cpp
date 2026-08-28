@@ -26,8 +26,8 @@ TCPConnection::TCPConnection(const std::string_view host, const std::uint16_t po
 {
 }
 
-TCPConnection::TCPConnection(const std::uint16_t port) :
-    fd(get_accept_fd(port))
+TCPConnection::TCPConnection(const std::uint16_t port, const std::function<void(std::uint16_t)>& on_listening) :
+    fd(get_accept_fd(port, on_listening))
 {
 }
 
@@ -138,9 +138,9 @@ int TCPConnection::get_connection_fd(const std::string_view host, const std::uin
     throw std::system_error(errno, std::generic_category(), "connect");
 }
 
-int TCPConnection::get_accept_fd(const std::uint16_t port)
+int TCPConnection::get_accept_fd(const std::uint16_t port, const std::function<void(uint16_t)>& on_listening)
 {
-    const auto listener = socket(AF_INET, SOCK_STREAM, 0);
+    const auto listener = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (listener == -1)
         throw std::system_error(errno, std::generic_category(), "socket");
 
@@ -162,6 +162,15 @@ int TCPConnection::get_accept_fd(const std::uint16_t port)
 
         if (listen(listener, 1) == -1)
             throw std::system_error(errno, std::generic_category(), "listen");
+
+        if (on_listening) {
+            // If a callback was provided, get the bound port (possibly ephemeral) and report it through the callback.
+            socklen_t address_size = sizeof(address);
+            if (getsockname(listener, reinterpret_cast<sockaddr*>(&address), &address_size) == -1)
+                throw std::system_error(errno, std::generic_category(), "getsockname");
+
+            on_listening(ntohs(address.sin_port));
+        }
 
         // Once a connection can be accepted with the blocking accept, clean up and return the FD of the connection.
         int fd;

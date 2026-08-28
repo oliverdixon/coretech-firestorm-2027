@@ -11,6 +11,7 @@
 #define FIRESTORM_TCPCONNECTION_HPP
 
 #include <cstdint>
+#include <functional>
 #include <span>
 #include <string_view>
 
@@ -47,10 +48,11 @@ public:
      * peer connects, cleans up the listening socket, and retains ownership of the accepted connection.
      *
      * @param port Local TCP port on which to accept the connection, in host byte order.
+     * @param on_listening An optional callback to invoke with the port number following a successful listen call.
      *
      * @throws std::system_error An OS-level networking call failed.
      */
-    explicit TCPConnection(std::uint16_t port);
+    explicit TCPConnection(std::uint16_t port, const std::function<void(std::uint16_t)>& on_listening = {});
 
     /**
      * Closes the owned TCP connection.
@@ -120,12 +122,13 @@ private:
      * Accepts one connection on an ephemeral listening socket.
      *
      * @param port Local TCP port on which to accept the connection, in host byte order.
+     * @param on_listening Callback to invoke with the port number following a successful listen call.
      *
      * @throws std::system_error An OS-level networking call failed.
      *
      * @return File descriptor of the accepted connection socket.
      */
-    static int get_accept_fd(std::uint16_t port);
+    static int get_accept_fd(std::uint16_t port, const std::function<void(uint16_t)>& on_listening);
 
     int fd; /**< File descriptor of the active socket. */
 };
