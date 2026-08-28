@@ -1,10 +1,10 @@
 /**
  * @file
  *
- * TestFrameRouters implementation
+ * TestClassifiedAsyncFrameRouter implementation
  *
  * @author Oliver Dixon
- * @date 2026-08-27
+ * @date 2026-08-28
  */
 
 #include "../LoopbackTCPReceiver.hpp"

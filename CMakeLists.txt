@@ -106,9 +106,16 @@ if (FIRESTORM_BUILD_TESTING)
             propagate_output_failures
     )
 
-    set(TestFrameRouters_CASES) # TODO
+    set(TestPassthroughAsyncFrameRouter_CASES) # TODO
 
-    set(TestFrameRouters_DEPENDENCIES
+    set(TestPassthroughAsyncFrameRouter_CASES
+            src/tests/LoopbackTCPReceiver.cpp
+            src/tests/LoopbackTCPReceiver.hpp
+    )
+
+    set(TestClassifiedAsyncFrameRouter_CASES) # TODO
+
+    set(TestClassifiedAsyncFrameRouter_DEPENDENCIES
             src/tests/LoopbackTCPReceiver.cpp
             src/tests/LoopbackTCPReceiver.hpp
     )
@@ -150,6 +157,7 @@ if (FIRESTORM_BUILD_TESTING)
             set_tests_properties(
                     "${CTEST_NAME}"
                     PROPERTIES
+                    TIMEOUT 10
                     LABELS "Unit;${FIXTURE_NAME}"
             )
         endforeach ()
