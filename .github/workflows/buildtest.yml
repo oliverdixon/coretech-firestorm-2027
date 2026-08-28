@@ -3,7 +3,7 @@ name: Build and Test FIRE STORM
 on:
   push:
     branches:
-      - unit-testing
+      - master
     paths:
       - 'src/**'
       - 'coretech/**'
