@@ -56,8 +56,9 @@ int main(const int argc, const char* const* const argv)
             options.reject_bad_checksums = true;
         else if (arg == "--classified")
             options.classified = true;
-        else
+        else {
             LOG_F_WARNING("Unknown argument: {}", arg);
+        }
 
     // Run the driver and report fatal errors.
 
