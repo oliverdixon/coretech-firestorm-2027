@@ -3,3 +3,5 @@
 *.pdf
 /CMakeUserPresets.json
 __pycache__
+
+!/coretech/*/reference/*.pdf
