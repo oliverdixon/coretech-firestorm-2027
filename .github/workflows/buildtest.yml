@@ -10,6 +10,7 @@ on:
       - '.github/**'
       - 'CMakeLists.txt'
       - 'CMakePresets.json'
+  workflow_dispatch:
 
 concurrency:
   group: deploy-firestorm
