@@ -1,2 +1,3 @@
-coretech/stage1 linguist-vendored
-coretech/stage2 linguist-vendored
+coretech/stage1/** linguist-vendored
+coretech/stage2/** linguist-vendored
+
