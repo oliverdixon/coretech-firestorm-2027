@@ -81,7 +81,7 @@ void ClassifiedAsyncFrameRouter::drain_and_report()
     // Drain and capture the first error. Report endpoint statistics if possible.
     auto drain = [&first_failure](AsyncFrameSink& sink) noexcept {
         try {
-            const auto [sent, dropped] = sink.drain();
+            [[maybe_unused]] const auto [sent, dropped] = sink.drain();
             LOG_F_INFO("To the endpoint {}, {} frames were sent, and {} were dropped.", sink.endpoint(), sent, dropped);
         } catch (...) {
             if (!first_failure)

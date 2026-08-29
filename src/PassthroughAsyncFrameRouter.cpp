@@ -33,7 +33,7 @@ void PassthroughAsyncFrameRouter::route(const EthernetFrameView& view)
 
 void PassthroughAsyncFrameRouter::drain_and_report()
 {
-    const auto [sent, dropped] = tcp_sink.drain();
+    [[maybe_unused]] const auto [sent, dropped] = tcp_sink.drain();
     LOG_F_INFO("Under the passthrough policy, {} frames have been forwarded.", frame_count);
     LOG_F_INFO("To the endpoint {}, {} frames were sent, and {} were dropped.", tcp_sink.endpoint(), sent, dropped);
 

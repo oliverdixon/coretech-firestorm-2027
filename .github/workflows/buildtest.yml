@@ -32,8 +32,8 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          cmake --preset debug-tests
-          cmake --preset release-tests
+          cmake -G Ninja --preset debug-tests
+          cmake -G Ninja --preset release-tests
 
       - name: Build tests
         shell: bash
