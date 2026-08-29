@@ -325,7 +325,7 @@ To prevent a slow TCP forwarding endpoint slowing the application indefinitely, 
 `poll`](https://man7.org/linux/man-pages/man2/poll.2.html)
 and [C++ threading](https://cppreference.com/cpp/header/thread) is used; in particular, transport on each forwarding
 endpoint runs on an independent thread to achieve asynchronous forwarding. The async frame sink is implemented in [
-`AsyncFrameSink::run_worker`](https://github.com/oliverdixon/coretech-firestorm-2027/blob/894ca924e7f3b4af8e3a5df23b7fa0f97c883099/src/AsyncFrameSink.cpp#L168).
+`AsyncFrameSink::run_worker`](https://github.com/oliverdixon/coretech-firestorm-2027/blob/ee054a3f14b344fa2ccd973dda96c7b1f309182b/src/AsyncFrameSink.cpp#L168).
 
 At the implementation level, cache-friendly STL data structures such as ([
 `std::vector`](https://en.cppreference.com/cpp/container/vector) and similar) are used over node-based structures.
@@ -333,7 +333,7 @@ Copying large amounts of data is elided by using lightweight non-owning ranges, 
 [`std::span`](https://en.cppreference.com/cpp/container/span), with documented lifetime guarantees. Repeated dynamic
 allocation is avoided where possible, and buffers are maintained using heuristics to avoid
 excessive work during hot loops (see, for example, [
-`TrafficDecoder::compact`](https://github.com/oliverdixon/coretech-firestorm-2027/blob/894ca924e7f3b4af8e3a5df23b7fa0f97c883099/src/TrafficDecoder.cpp#L44)).
+`TrafficDecoder::compact`](https://github.com/oliverdixon/coretech-firestorm-2027/blob/ee054a3f14b344fa2ccd973dda96c7b1f309182b/src/TrafficDecoder.cpp#L42)).
 Where possible, ranges are statically sized through template specialisation to encourage more aggressive optimisation;
 see, for example, [C++20 statically sized `std::span`](https://en.cppreference.com/cpp/container/span/span).
 
