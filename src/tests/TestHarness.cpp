@@ -50,7 +50,7 @@ int TestHarness::run(const int argc, const char* const* const argv, const std::i
     }
 
     for (const auto& [id, name, function] : test_cases | std::views::filter(predicate)) {
-        std::println(std::cout, "[ RUN    ] {} ({})", id, name);
+        std::cout << std::format("[ RUN    ] {} ({})", id, name) << std::endl;
         const auto failures_before = harness.failure_count;
 
         try {
@@ -63,9 +63,9 @@ int TestHarness::run(const int argc, const char* const* const argv, const std::i
         }
 
         if (harness.failure_count == failures_before)
-            std::println(std::cout, "[ OK     ] {}", id);
+            std::cout << std::format("[ OK     ] {}", id) << std::endl;
         else
-            std::println(std::cerr, "[ FAILED ] {}", id);
+            std::cerr << std::format("[ FAILED ] {}", id) << std::endl;
     }
 
     if (!run) {
@@ -79,7 +79,7 @@ int TestHarness::run(const int argc, const char* const* const argv, const std::i
 void TestHarness::report_failure(std::string_view message, const std::source_location& location)
 {
     ++failure_count;
-    std::println(std::cerr, "{}:{}: CHECK FAILED: {}", location.file_name(), location.line(), message);
+    std::cerr << std::format("{}:{}: CHECK FAILED: {}", location.file_name(), location.line(), message) << std::endl;
 }
 
 } // namespace firestorm::test

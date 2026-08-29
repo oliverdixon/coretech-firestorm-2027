@@ -50,7 +50,13 @@ std::vector<std::reference_wrapper<const CTFSPacket>> PDFWriter::build_pdf_packe
     stream.reserve(packets.size());
     stream.emplace_back(*packets.begin());
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-reference" // False positive on g++-13.
+
     for (const auto& packet : packets | std::views::drop(1)) {
+
+#pragma GCC diagnostic pop
+
         const auto this_seq_num = packet.get_sequence_number();
         const auto prev_seq_num = stream.back().get().get_sequence_number();
 

@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <future>
 #include <memory>
+#include <span>
 #include <stop_token>
 #include <thread>
 #include <vector>

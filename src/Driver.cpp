@@ -113,8 +113,8 @@ void Driver::process_record(CTFSPacket&& ctfs_packet)
     const auto file_id = ctfs_packet.get_file_id();
 
     // Resize the groups to store the new packet slot vector.
-    if (packet_groups.size() < file_id + 1)
-        packet_groups.resize(file_id + 1);
+    if (packet_groups.size() < file_id + 1U)
+        packet_groups.resize(file_id + 1U);
 
     // Move the packet into the file's packet group.
     packet_groups[file_id].emplace_back(std::move(ctfs_packet));
