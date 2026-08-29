@@ -159,22 +159,6 @@ void reject_invalid_tail(TestHarness& harness)
 }
 
 /**
- * @test Verifies that the PDFWriter ignores duplicated packets.
- *
- * @param harness Active harness.
- */
-void ignore_duplicate_packets(TestHarness& harness)
-{
-    const std::string pdf = "%PDF-1.7\ndocument\n%%EOF";
-
-    std::vector<CTFSPacket> packets;
-    packets.emplace_back(0, 0, std::as_bytes(std::span{pdf}));
-    packets.emplace_back(0, 0, std::as_bytes(std::span{pdf}));
-
-    CHECK_EQUALS(serialise_pdf(packets), pdf);
-}
-
-/**
  * @test Verifies that the PDFWriter propagates stream write failures.
  *
  * @param harness Active harness.
@@ -211,6 +195,68 @@ void propagate_output_failures(TestHarness& harness)
     packets.emplace_back(0, 0, std::as_bytes(std::span{pdf}));
 
     CHECK_THROWS(PDFWriter::write_pdf(rejecting_stream, packets), std::ios_base::failure);
+}
+
+/**
+ * @test Verifies that an incomplete sequence is rejected.
+ *
+ * An incomplete or disjoint sequence is an ordered packet stream with gaps in the sequence numbers.
+ *
+ * @param harness Active harness.
+ */
+void reject_disjoint_sequences(TestHarness& harness)
+{
+    const std::string header = "%PDF-1.7\n";
+    const std::string eof = "%%EOF";
+
+    std::vector<CTFSPacket> packets;
+    packets.emplace_back(0, 0, std::as_bytes(std::span{header}));
+    packets.emplace_back(2, 0, std::as_bytes(std::span{eof}));
+
+    CHECK_THROWS(serialise_pdf(packets), std::runtime_error);
+}
+
+/**
+ * @test Verifies that ambiguous sequences are rejected.
+ *
+ * An ambiguous sequence is an ordered packet stream containing distinct payloads tagged with non-distinct sequence
+ * numbers.
+ *
+ * @param harness Active harness.
+ */
+void reject_ambiguous_sequences(TestHarness& harness)
+{
+    const std::string header = "%PDF-1.7\n";
+    const std::string first_body = "first body\n";
+    const std::string conflicting_body = "different body\n";
+    const std::string eof = "%%EOF";
+
+    std::vector<CTFSPacket> packets;
+
+    packets.emplace_back(0, 0, std::as_bytes(std::span{header}));
+    packets.emplace_back(1, 0, std::as_bytes(std::span{first_body}));
+    packets.emplace_back(1, 0, std::as_bytes(std::span{conflicting_body}));
+    packets.emplace_back(2, 0, std::as_bytes(std::span{eof}));
+
+    CHECK_THROWS(serialise_pdf(packets), std::runtime_error);
+}
+
+/**
+ * @test Verifies that inconsistent sequences are rejected.
+ *
+ * An inconsistent sequence is a sequence which contains CTFSPacket objects referring to distinct File IDs.
+ *
+ * @param harness Active harness.
+ */
+void reject_inconsistent_sequences(TestHarness& harness)
+{
+    const std::string pdf = "%PDF-1.7\nbody\n%%EOF";
+
+    std::vector<CTFSPacket> packets;
+    packets.emplace_back(0, 0, std::as_bytes(std::span{pdf}));
+    packets.emplace_back(0, 1, std::as_bytes(std::span{pdf}));
+
+    CHECK_THROWS(serialise_pdf(packets), std::runtime_error);
 }
 
 } // namespace
@@ -266,14 +312,24 @@ int main(const int argc, const char* const* const argv)
             .function = reject_invalid_tail,
         },
         {
-            .id = "ignore_duplicate_packets",
-            .name = "PDF writer ignores duplicated packets",
-            .function = ignore_duplicate_packets,
-        },
-        {
             .id = "propagate_output_failures",
             .name = "PDF writer propagates stream writer failures",
             .function = propagate_output_failures,
+        },
+        {
+            .id = "reject_disjoint_sequences",
+            .name = "PDF writer rejects disjoint sequences",
+            .function = reject_disjoint_sequences,
+        },
+        {
+            .id = "reject_ambiguous_sequences",
+            .name = "PDF writer rejects ambiguous sequences",
+            .function = reject_ambiguous_sequences,
+        },
+        {
+            .id = "reject_inconsistent_sequences",
+            .name = "PDF writer rejects inconsistent sequences",
+            .function = reject_inconsistent_sequences,
         },
     });
 

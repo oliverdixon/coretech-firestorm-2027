@@ -104,8 +104,10 @@ if (FIRESTORM_BUILD_TESTING)
             reject_empty_input
             reject_invalid_header
             reject_invalid_tail
-            ignore_duplicate_packets
             propagate_output_failures
+            reject_disjoint_sequences
+            reject_ambiguous_sequences
+            reject_inconsistent_sequences
     )
 
     set(TestPassthroughAsyncFrameRouter_CASES
@@ -183,7 +185,7 @@ if (FIRESTORM_BUILD_TESTING)
 
     function(add_integration_test)
         set(options)
-        set(one_value_args NAME SCRIPT)
+        set(one_value_args NAME SCRIPT REFERENCE)
         set(multi_value_args ARGS)
 
         cmake_parse_arguments(
@@ -201,10 +203,9 @@ if (FIRESTORM_BUILD_TESTING)
                 COMMAND
                 "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/coretech/run_integration.py"
-                "--streamer"
-                "${TEST_SCRIPT}"
-                "--app"
-                "$<TARGET_FILE:FireStorm>"
+                "--streamer" "${TEST_SCRIPT}"
+                "--app" "$<TARGET_FILE:FireStorm>"
+                "--reference" "${TEST_REFERENCE}"
                 ${TEST_ARGS}
         )
 
@@ -219,11 +220,13 @@ if (FIRESTORM_BUILD_TESTING)
     add_integration_test(
             NAME Stage1
             SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/coretech/stage1/test.py"
+            REFERENCE "${CMAKE_CURRENT_SOURCE_DIR}/coretech/stage1/reference"
     )
 
     add_integration_test(
             NAME Stage2
             SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/coretech/stage2/test.py"
+            REFERENCE "${CMAKE_CURRENT_SOURCE_DIR}/coretech/stage2/reference"
             ARGS
             "--"
             "--classified"

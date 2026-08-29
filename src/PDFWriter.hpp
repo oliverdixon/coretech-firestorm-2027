@@ -12,6 +12,7 @@
 
 #include <iosfwd>
 #include <span>
+#include <vector>
 
 namespace firestorm
 {
@@ -34,10 +35,32 @@ public:
      * @throws std::runtime_error The assembled byte stream was empty.
      * @throws std::runtime_error The assembled byte stream does not begin with the PDF magic bytes.
      * @throws std::runtime_error The assembled byte stream does not end with the PDF EOF marker.
+     * @throws std::runtime_error @p packets contained distinct File ID references.
+     * @throws std::runtime_error @p packets contained a duplicate sequence number with non-distinct payload.
+     * @throws std::runtime_error @p packets missed a packet sequence number.
      */
     static void write_pdf(std::ostream& output, std::span<const CTFSPacket> packets);
 
 private:
+    /**
+     * Validates and builds a CTFSPacket stream from the given span.
+     *
+     * Performs a series of semantic sanity tests, throwing on failure. On success, the returned vector is a non-empty
+     * ordered collection of CTFSPacket references, viewing the same underlying storage as @p packets, with consecutive
+     * sequence numbers. All entries refer to the same File ID.
+     *
+     * @param packets Monotonically increasing observing view of CTFSPacket objects.
+     *
+     * @return Ordered list of CTFSPacket objects suitable for reconstruction into a PDF document.
+     *
+     * @throws std::runtime_error The assembled packet stream was empty.
+     * @throws std::runtime_error @p packets contained distinct File ID references.
+     * @throws std::runtime_error @p packets contained a duplicate sequence number with non-distinct payload.
+     * @throws std::runtime_error @p packets missed a packet sequence number.
+     */
+    static std::vector<std::reference_wrapper<const CTFSPacket>> build_pdf_packet_stream(
+        std::span<const CTFSPacket> packets);
+
     /**
      * Verifies that a sequence of packets contains a PDF byte stream.
      *
@@ -46,13 +69,12 @@ private:
      *
      * @param packets Ordered packets comprising the PDF byte stream.
      *
-     * @throws std::runtime_error The assembled byte stream was empty.
      * @throws std::runtime_error The assembled byte stream does not begin with the PDF magic bytes.
      * @throws std::runtime_error The assembled byte stream does not end with the PDF EOF marker.
      *
      * @note This is a smoke test only; it does not validate the internal PDF structure.
      */
-    static void validate_pdf_stream(std::span<const CTFSPacket> packets);
+    static void validate_pdf_payload_stream(std::span<const std::reference_wrapper<const CTFSPacket>> packets);
 };
 
 } // namespace firestorm
