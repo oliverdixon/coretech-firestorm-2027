@@ -2,8 +2,7 @@
 
 """Run a Python traffic streamer against a FIRE STORM executable.
 
-The FIRE STORM application is started first, followed by the Python traffic streamer. Arguments after `--` are passed
-unchanged to the FIRE STORM application executable.
+The FIRE STORM application is started first, followed by the Python traffic streamer.
 
 The application is run in a temporary working directory. Any PDFs it produces are compared against PDFs with the same
 names in the reference directory.
@@ -23,7 +22,7 @@ Command-line arguments:
         Path to the Python traffic-streaming script.
 
     --reference DIRECTORY
-        Directory containing the expected PDF documents.
+        Path to the directory containing the expected PDF documents.
 
     --
         Ends the runner arguments. Every subsequent argument is passed unchanged to the FIRE STORM application
@@ -48,7 +47,7 @@ from pathlib import Path
 from typing import Final
 
 
-def run(app_path: Path, streamer_path: Path, app_args: list[str], working_directory: Path, ) -> int:
+def run(app_path: Path, streamer_path: Path, app_args: list[str], working_directory: Path) -> int:
     """Run the FIRE STORM application and traffic streamer.
 
     Args:
@@ -69,22 +68,22 @@ def run(app_path: Path, streamer_path: Path, app_args: list[str], working_direct
     app_exit_timeout_seconds: Final[int] = 30
     app_termination_timeout_seconds: Final[int] = 5
 
-    app = subprocess.Popen([str(app_path), *app_args], cwd=working_directory, )
+    # Run the app followed by the streamer. The app will hang until the streamer opens the port.
+    app = subprocess.Popen([str(app_path), *app_args], cwd=working_directory)
 
     try:
-        streamer = subprocess.run([sys.executable, str(streamer_path), "--quiet"], check=False, )
+        streamer = subprocess.run([sys.executable, str(streamer_path), "--quiet"], check=False)
 
         if streamer.returncode != 0:
             print(f"Traffic streamer failed with exit status "
-                  f"{streamer.returncode}.", file=sys.stderr, )
+                  f"{streamer.returncode}.", file=sys.stderr)
             return streamer.returncode
 
         try:
             return app.wait(timeout=app_exit_timeout_seconds)
 
         except subprocess.TimeoutExpired:
-            print(f"FIRE STORM application did not exit within "
-                  f"{app_exit_timeout_seconds} seconds.", file=sys.stderr, )
+            print(f"FIRE STORM did not exit within {app_exit_timeout_seconds} seconds.", file=sys.stderr)
             return 1
 
     finally:
@@ -97,8 +96,6 @@ def run(app_path: Path, streamer_path: Path, app_args: list[str], working_direct
             except subprocess.TimeoutExpired:
                 app.kill()
                 app.wait()
-
-    return 2
 
 
 def sha256(path: Path) -> str:
@@ -115,8 +112,8 @@ def sha256(path: Path) -> str:
 def check(reference_path: Path, output_path: Path) -> bool:
     """Check generated PDFs against the reference directory.
 
-    The output directory must contain exactly the same set of PDF documentnames as the reference directory, and every
-    corresponding pair must be byte-for-byte identical.
+    The output directory must contain exactly the same set of PDF document names as the reference directory, and every
+    corresponding pair must be equal under SHA-256.
 
     Args:
         reference_path:
@@ -127,8 +124,8 @@ def check(reference_path: Path, output_path: Path) -> bool:
     Returns:
         True if all files match exactly, otherwise False.
     """
-    reference_files = {path.name: path for path in reference_path.glob("*.pdf") if path.is_file()}
 
+    reference_files = {path.name: path for path in reference_path.glob("*.pdf") if path.is_file()}
     output_files = {path.name: path for path in output_path.glob("*.pdf") if path.is_file()}
 
     reference_names = reference_files.keys()
@@ -140,11 +137,11 @@ def check(reference_path: Path, output_path: Path) -> bool:
     success = True
 
     for name in missing_files:
-        print(f"FAIL: an expected PDF was not generated: {name}", file=sys.stderr, )
+        print(f"An expected PDF was not generated: {name}", file=sys.stderr)
         success = False
 
     for name in unexpected_files:
-        print(f"FAIL: an unexpected PDF was generated: {name}", file=sys.stderr, )
+        print(f"An unexpected PDF was generated: {name}", file=sys.stderr)
         success = False
 
     for name in sorted(reference_names & output_names):
@@ -155,14 +152,14 @@ def check(reference_path: Path, output_path: Path) -> bool:
             print(f"PASS: {name}")
             continue
 
-        print(f"FAIL: {name} differs from reference.", file=sys.stderr, )
-        print(f"      expected SHA-256: {sha256(reference_file)}", file=sys.stderr, )
-        print(f"      actual SHA-256:   {sha256(output_file)}", file=sys.stderr, )
+        print(f"{name} Differs from reference.", file=sys.stderr)
+        print(f"       expected SHA-256: {sha256(reference_file)}", file=sys.stderr)
+        print(f"       actual SHA-256:   {sha256(output_file)}", file=sys.stderr)
 
         success = False
 
     if not reference_files:
-        print("FAIL: reference directory contains no PDF documents.", file=sys.stderr, )
+        print("The reference directory contains no PDF documents.", file=sys.stderr)
         success = False
 
     return success
@@ -172,10 +169,9 @@ def main() -> int:
     """Run the FIRE STORM integration test."""
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--app", required=True, type=Path, help="Path to the FIRE STORM executable.", )
-    parser.add_argument("--streamer", required=True, type=Path, help="Path to the Python traffic streamer.", )
-    parser.add_argument("--reference", required=True, type=Path,
-                        help="Directory containing the expected PDF documents.", )
+    parser.add_argument("--app", required=True, type=Path, help="Path to the FIRE STORM executable.")
+    parser.add_argument("--streamer", required=True, type=Path, help="Path to the Python traffic streamer.")
+    parser.add_argument("--reference", required=True, type=Path, help="Directory containing the reference PDFs.")
 
     runner_args = sys.argv[1:]
     app_args: list[str] = []
@@ -203,10 +199,10 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="firestorm-integration-") as directory:
         working_directory = Path(directory)
 
-        return_code = run(app_path, streamer_path, app_args, working_directory, )
+        return_code = run(app_path, streamer_path, app_args, working_directory)
 
         if return_code != 0:
-            print(f"FIRE STORM execution failed with exit status {return_code}.", file=sys.stderr, )
+            print(f"FIRE STORM execution failed with exit status {return_code}.", file=sys.stderr)
             return return_code
 
         if not check(reference_path, working_directory):

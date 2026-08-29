@@ -316,25 +316,42 @@ destination MAC, it will be routed in accordance with the _Monitored_ classifica
 ### Performance Considerations
 
 Due to the potentially high data throughput, runtime performance was considered. The sample workloads verify correctness
-but are of insufficient size to allow effective profiling. Nonetheless, preliminary results from `perf` indicate that
-the _FIRE STORM_ executable is network-bound for the duration of its execution, with the reconstruction and filtering of
-packet data contributing negligible amounts of resource usage.
+but are of insufficient size to allow effective profiling. A future line of investigation would involve generating very
+large data streams of operational and non-operational data and analysis _FIRE STORM_ with a dynamic analysis tool such
+as [`perf`](https://man7.org/linux/man-pages/man1/perf.1.html) or
+[`callgrind`](https://valgrind.org/docs/manual/cl-manual.html) to determine runtime bottlenecks.
+
+To prevent a slow TCP forwarding endpoint slowing the application indefinitely, a combination of socket timeouts with [
+`poll`](https://man7.org/linux/man-pages/man2/poll.2.html)
+and [C++ threading](https://cppreference.com/cpp/header/thread) is used; in particular, transport on each forwarding
+endpoint runs on an independent thread to achieve asynchronous forwarding. The async frame sink is implemented in [
+`AsyncFrameSink::run_worker`](https://github.com/oliverdixon/coretech-firestorm-2027/blob/894ca924e7f3b4af8e3a5df23b7fa0f97c883099/src/AsyncFrameSink.cpp#L168).
 
 At the implementation level, cache-friendly STL data structures such as ([
 `std::vector`](https://en.cppreference.com/cpp/container/vector) and similar) are used over node-based structures.
 Copying large amounts of data is elided by using lightweight non-owning ranges, such as
-[`std::span`](https://en.cppreference.com/cpp/container/span), with documented lifetime guarantees. Dynamic allocation
-is avoided in all cases except CTFS packet reconstruction, and buffers are maintained using heuristics to avoid
+[`std::span`](https://en.cppreference.com/cpp/container/span), with documented lifetime guarantees. Repeated dynamic
+allocation is avoided where possible, and buffers are maintained using heuristics to avoid
 excessive work during hot loops (see, for example, [
-`TrafficDecoder::compact`](https://github.com/oliverdixon/coretech-firestorm-2027/blob/2dae2339b2a3402e33f05b5cc30fcd99bd7c54a0/src/TrafficDecoder.cpp#L30)).
+`TrafficDecoder::compact`](https://github.com/oliverdixon/coretech-firestorm-2027/blob/894ca924e7f3b4af8e3a5df23b7fa0f97c883099/src/TrafficDecoder.cpp#L44)).
 Where possible, ranges are statically sized through template specialisation to encourage more aggressive optimisation;
 see, for example, [C++20 statically sized `std::span`](https://en.cppreference.com/cpp/container/span/span).
+
+Preliminary profiling with `perf` on the smaller workloads indicated that _FIRE STORM_ is network-bound in the speed of
+the UNIX sockets, such that further optimisation of the C++ implementation would be unlikely to improve execution
+performance. If the application became compute-bound under higher workloads, frames could be batched prior to being
+sent, with the consequences of increasing complexity of object lifetime semantics and potentially increasing the amount
+of synchronisation mechanisms required to control ownership; this would require profiling, as it could have a
+detrimental impact on performance due to locking.
 
 ### Hardening Considerations
 
 If configured and built with the Release CMake preset, the _FIRE STORM_ will undergo various build-time hardening
-processes through the use of compiler and linker flags. To debug release builds, `llvm-objcopy` can be used to separate
-the stripped ELF from debugging symbols, the latter of which can be kept private.
+processes through the use of compiler and linker flags followed by stripping. To debug release builds, `llvm-objcopy`
+can be used to separate the stripped ELF from debugging symbols, the latter of which can be kept private.
+
+As the packet decoder necessarily uses hardcoded strings to detect operational data, a reverse-engineer could learn the
+purpose of the application with the `strings` command, although the logic remains obfuscated.
 
 <table>
 <thead>
