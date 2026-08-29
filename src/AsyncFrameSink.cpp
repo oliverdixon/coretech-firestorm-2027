@@ -121,7 +121,7 @@ void AsyncFrameSink::attempt_connection()
         try {
             transport.emplace(host, port);
             LOG_F_INFO("Established forwarding TCP connection to {}:{}.", host, port);
-        } catch (const std::exception&) {
+        } catch ([[maybe_unused]] const std::exception& error) {
             // Apply exponential back-off cooling off period.
 
             using CooloffT = decltype(statistics.connection_cooloff);
