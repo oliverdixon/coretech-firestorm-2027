@@ -5,3 +5,6 @@
 __pycache__
 
 !/coretech/*/reference/*.pdf
+
+/debrief-presentation/build/
+
