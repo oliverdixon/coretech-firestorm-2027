@@ -1,14 +1,185 @@
 \documentclass[aspectratio=169]{beamer}
 
+\usepackage{tikz}
+
 \usetheme{CambridgeUS}
 \usecolortheme{dolphin}
 
-\title{Operation FIRE STORM Solution}
+\usetikzlibrary{fit, positioning, arrows.meta}
+\tikzset{
+    box/.style={
+        draw,
+        rounded corners=2pt,
+        align=center,
+        inner sep=6pt,
+    },
+    component/.style={
+        box,
+        minimum height=1cm,
+        align=center
+    },
+    communication/.style={
+        -Stealth,
+        thick
+    },
+    network/.style={
+        box,
+        dashed
+    },
+    every label/.style={font=\slshape}
+}
+
+\title{Operation \texorpdfstring{\textbf{FIRE STORM}}{FIRE STORM} Candidate Solution}
 \subtitle{CoreTech Security Debrief}
+\titlegraphic{\url{https://github.com/oliverdixon/coretech-firestorm-2027/}}
+
+\newcommand\archnode[2]{#1\\{\scriptsize\itshape#2}}
 
 \author{Oliver Dixon}
 \date{Thursday, 26th November 2026}
 
 \begin{document}
 \frame{\titlepage}
+\begin{frame}
+    \frametitle{Purpose}
+    \begin{itemize}
+        \item Intercepting, decoding, and routing packets on a TCP byte stream
+        \item Routing behaviour determined by a static set of rules
+        \item Select ``operational data'' packets retained and reconstructed
+    \end{itemize}
+    \pause
+    \vfill
+    \centering
+    \begin{tikzpicture}[
+        every node/.style={minimum width=3.7cm,},
+        node distance=0.1cm and 1cm,
+    ]
+        \node[component] (monitored-src) {Monitored Traffic};
+        \node[component, below=of monitored-src] (malicious-src) {Malicious Traffic};
+        \node[component, below=of malicious-src] (unclassified-src) {Unclassified Sources};
+
+        \node[network, fit=(monitored-src)(malicious-src)(unclassified-src),
+            label=below:Packet Sources] {};
+
+        \node[component, right=of monitored-src] (sw) {\bfseries FIRE STORM};
+        \node[component] (retained) at (sw |- unclassified-src) {Operational Data};
+        \draw[communication] (sw) -- (retained);
+        
+        \draw[communication] (monitored-src.east) -- (sw.north west);
+        \draw[communication] (malicious-src.east) -- (sw.west);
+        \draw[communication] (unclassified-src.east) -- (sw.south west);
+
+        \node[component, right=of sw] (monitored-sink) {Monitoring Sink};
+        \node[component, below=of monitored-sink] (tcp-sink) {TCP Sink};
+        \node[component, below=of tcp-sink] (udp-sink) {UDP Sink};
+
+        \draw[communication] (sw.north east) -- (monitored-sink.west);
+        \draw[communication] (sw.east) -- (tcp-sink.west);
+        \draw[communication] (sw.south east) -- (udp-sink.west);
+
+        \node[network, fit=(monitored-sink)(tcp-sink)(udp-sink),
+            label=below:Forwarded Packet Sinks] {};
+    \end{tikzpicture}
+\end{frame}
+\begin{frame}
+    \frametitle{Component Architecture and Ownership Semantics}
+    \centering
+    \begin{tikzpicture}[
+        every node/.style={minimum width=5cm,},
+        node distance=.8cm and 3.8cm,
+    ]
+        \tikzset{
+            stacked/.style={
+                append after command={\pgfextra{
+                    \foreach \k in {1,2,3} {
+                        \draw[draw, component, fill=none]
+                        ([xshift={\k*0.15cm}, yshift={-(\k-1)*0.15cm}] \tikzlastnode.south west) --
+                        ([xshift={\k*0.15cm}, yshift={-\k*0.15cm}] \tikzlastnode.south west) --
+                        ([xshift={\k*0.15cm}, yshift={-\k*0.15cm}] \tikzlastnode.south east) --
+                        ([xshift={\k*0.15cm}, yshift={-\k*0.15cm}] \tikzlastnode.north east) --
+                        ([xshift={(\k-1)*0.15cm}, yshift={-\k*0.15cm}] \tikzlastnode.north east);
+                    }
+                }}
+            }
+        }
+
+        \node[component] (driver) {\archnode{Driver}{Coordinates processing.}};
+        \node[component, below=of driver] (decoder)
+            {\archnode{Traffic Decoder}{Assembles and validates records.}};
+        \node[component, below=of decoder] (writer)
+            {\archnode{PDF Writer}{Validates and writes reconstruction.}};
+        \node[component, right=of decoder] (router)
+            {\archnode{Frame Router}{Selects destination.}};
+        \node[
+            component,
+            below=of router,
+            stacked
+        ] (sinks) {\archnode{Frame Sinks}{Queue and asynchronous despatch.}};
+
+        \begin{scope}[every node/.style={font=\scriptsize}]
+            \draw[communication] (driver) -- (decoder);
+            \draw[communication] (decoder) -- node[right] {Owns operational data} (writer);
+            \draw[communication] (decoder) -- node[above] {Ephemeral frame views} (router);
+            \draw[communication] (router) -- node[left] {Owns routed non-operational frames}
+                (sinks);
+        \end{scope}
+    \end{tikzpicture}
+\end{frame}
+\begin{frame}
+    \frametitle{Implementation Strategy}
+    \begin{itemize}
+        \item Monolithic C++23 POSIX application
+        \item Multi-threaded network transport in the number of sinks
+        \item Worker threads accept tasks in a bounded queue\pause
+        \item Extensive use of STL
+            \begin{itemize}
+                \item Cache-friendly data storage
+                \item No-copy functional-style constructs with lazy operations
+                \item Explicit ownership and RAII manage heap-allocated data
+                \item Static storage allocation and compile-time evaluation
+            \end{itemize}\pause
+        \item Failure modes enforced with exceptions and exception guarantees
+    \end{itemize}
+\end{frame}
+\begin{frame}
+    \frametitle{Validation Strategy}
+    \begin{itemize}[<+->]
+        \item Unit tests across fixtures to exercise each component:
+            \begin{itemize}[<.->]
+                \item Underlying connection
+                \item Frame routers
+                \item Frame sinks
+                \item Traffic decoder
+                \item Semantics of data model
+            \end{itemize}
+        \item End-to-end tests provided by CoreTech.
+            \begin{itemize}[<.->]
+                \item Exercises the happy path
+                \item Constructed documents verified by SHA256
+            \end{itemize}
+        \item Integrated into CI pipeline to identify correctness regressions
+        \item Static analysis (LLVM tools) and dynamic analysis (Valgrind Memcheck)
+        \item Extensive documentation (Doxygen) to aid review
+    \end{itemize}
+\end{frame}
+\begin{frame}
+    \frametitle{Future Work}
+    \begin{itemize}[<+->]
+        \item Present solution to customer and ask further questions:
+            \begin{itemize}[<.->]
+                \item Changed requirements?
+                \item Intended deployment environment? Security boundaries?
+                \item Dynamically configurable routing? \texttt{iptables(8)}? \texttt{nft(8)}?
+            \end{itemize}
+        \item Performance bottlenecks identified with profiling --- \texttt{callgrind},
+        \texttt{perf(1)}, etc.
+        \item Test on network representative of deployment environment
+            \begin{itemize}[<.->]
+                \item Unpredictable latency?
+                \item Resilience to network failures?
+                \item Large number of nodes?
+            \end{itemize}
+        \item Probably unwise to deploy memory-unsafe languages at the edge
+    \end{itemize}
+\end{frame}
 \end{document}
