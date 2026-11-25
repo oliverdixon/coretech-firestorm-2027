@@ -45,7 +45,7 @@
     \begin{itemize}
         \item Intercepting, decoding, and routing packets on a TCP byte stream
         \item Routing behaviour determined by a static set of rules
-        \item Select ``operational data'' packets retained and reconstructed
+        \item Select ``operational data'' packets retained and reconstructed as PDF documents
     \end{itemize}
     \pause
     \vfill
@@ -103,8 +103,8 @@
             }
         }
 
-        \node[component] (driver) {\archnode{Driver}{Coordinates processing.}};
-        \node[component, below=of driver] (decoder)
+        \node[component] (conn) {\archnode{Connection}{Manages socket and data stream.}};
+        \node[component, below=of conn] (decoder)
             {\archnode{Traffic Decoder}{Assembles and validates records.}};
         \node[component, below=of decoder] (writer)
             {\archnode{PDF Writer}{Validates and writes reconstruction.}};
@@ -117,7 +117,7 @@
         ] (sinks) {\archnode{Frame Sinks}{Queue and asynchronous despatch.}};
 
         \begin{scope}[every node/.style={font=\scriptsize}]
-            \draw[communication] (driver) -- (decoder);
+            \draw[communication] (conn) -- node[right] {Forwards TCP byte stream} (decoder);
             \draw[communication] (decoder) -- node[right] {Owns operational data} (writer);
             \draw[communication] (decoder) -- node[above] {Ephemeral frame views} (router);
             \draw[communication] (router) -- node[left] {Owns routed non-operational frames}
@@ -180,6 +180,12 @@
                 \item Large number of nodes?
             \end{itemize}
         \item Probably unwise to deploy memory-unsafe languages at the edge
+    \end{itemize}
+\end{frame}
+\begin{frame}
+    \frametitle{Discussion}
+    \begin{itemize}
+        \item Any questions?
     \end{itemize}
 \end{frame}
 \end{document}
